@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf8"?>
+<fluxml xmlns="http://www.uni-siegen.de/fb11/simtec/13cflux/fluxml"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.uni-siegen.de/fb11/simtec/13cflux/fluxml http://www.uni-siegen.de/fb11/simtec/13cflux/fluxml.xsd">
+  <info>
+    <name>Standard-Spirale</name>
+    <version>1.0</version>
+    <date>2006-10-30 21:31:12</date>
+    <comment>Standard-Mini-Sprialnetzwerk</comment>
+  </info>
+
+  <reactionnetwork type="isotopomer">
+    <metabolitepools>
+      <pool id="A" atoms="2"/>
+      <pool id="B" atoms="2"/>
+      <pool id="C" atoms="4"/>
+      <pool id="D" atoms="3"/>
+      <pool id="E" atoms="2"/>
+      <pool id="F" atoms="1"/>
+      <pool id="G" atoms="1"/>
+      <!-- <pool id="H" atoms="2"/> --> <!-- ist isoliert -->
+    </metabolitepools>
+
+    <reaction id="v1">
+      <reduct id="A" cfg="AB"/>
+      <rproduct id="B" cfg="AB"/>
+    </reaction>
+
+    <reaction id="v2">
+      <reduct id="B" cfg="AB"/>
+      <reduct id="E" cfg="CD"/>
+      <rproduct id="C" cfg="ABCD"/>
+    </reaction>
+
+     <reaction id="v3">
+      <reduct id="B" cfg="AB"/>
+      <rproduct id="E" cfg="AB"/>
+    </reaction>
+
+    <reaction id="v4">
+      <reduct id="C" cfg="ABCD"/>
+      <rproduct id="D" cfg="BCD"/>
+      <rproduct id="F" cfg="A"/>
+    </reaction>
+
+    <reaction id="v5">
+      <reduct id="D" cfg="ABC"/>
+      <rproduct id="E" cfg="AB"/>
+      <rproduct id="G" cfg="C"/>
+    </reaction>
+
+    <reaction id="v6">
+      <reduct id="E" cfg="AB"/>
+    </reaction>
+    
+    <reaction id="v7">
+      <reduct id="G" cfg="A"/>
+    </reaction>
+    
+    <reaction id="v8" bidirectional="false">
+      <reduct id="F" cfg="A"/>
+    </reaction>
+
+  </reactionnetwork>
+  <!--
+  <constraints>
+   <netto>
+     <math>
+       <declare>
+       <ci>scrambler_net</ci>
+         <apply>
+           <eq/>
+  	 <ci>v4</ci>
+  	 <ci>v5</ci>
+         </apply>
+       </declare>
+     </math>
+   </netto>
+   <exchange><math/></exchange>
+  </constraints>
+  -->
+  <configuration name="default_old">
+    <comment>Eine Belegung für die Input-Pools</comment>
+    <input pool="A" type="isotopomer">
+      <label cfg="00">0.5</label>
+      <label cfg="01">0.2</label>
+      <label cfg="10">0.2</label>
+      <label cfg="11">0.1</label>
+    </input>
+
+    <constraints>
+      <netto>
+        <textual>v1=1;v8=0.2 </textual>
+      </netto>
+      <exchange>
+	<textual>v2=0.04;v3=0.03;v4=0.02;v5=0.01;</textual> 
+      </exchange>
+    </constraints>
+
+    <!--
+
+    Alternative 1:
+    <measurement>
+      <xi:include href="messung.mm" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+    </measurement>
+
+    Alternative 2:
+    <measurement xmlns:xi="http://www.w3.org/2001/XInclude">
+      <xi:include href="messung.mm"/>
+    </measurement>
+
+    Alternative 3:
+    <xi:include href="messung.mm" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+    -->
+
+    <simulation type="subset" method="cumomer">
+      <!-- full := Alle Cumomere / Isotopomere;
+           subset := Spezifikation in Cumomer-Kurznotation;
+	   auto := Gemäß Messmodell -->
+      <objects>
+        <obj pool="A"/>
+	<obj pool="B"/>
+      </objects>
+      <variables>
+	      <!--	      <var flux="v8" type="net"/>
+	      <var flux="v2" type="xch"/>
+	      <var flux="v3" type="xch"/>
+	      <var flux="v5" type="xch"/> -->
+      </variables>
+    </simulation>
+
+  </configuration>
+  <configuration name="default">
+    <comment>Eine Belegung für die Input-Pools</comment>
+    <input pool="A" type="isotopomer">
+      <label cfg="00">0.5</label>
+      <label cfg="01">0.2</label>
+      <label cfg="10">0.2</label>
+      <label cfg="11">0.1</label>
+    </input>
+
+    <constraints>
+      <netto>
+        <textual>v1=1</textual>
+      </netto>
+      <exchange>
+	<textual>v2=10;v5=0.01;v3=0.2</textual> 
+      </exchange>
+    </constraints>
+
+    <!--<measurement xmlns="http://www.uni-siegen.de/fb11/simtec/13cflux/mm"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="http://www.uni-siegen.de/fb11/simtec/13cflux/mm http://www.uni-siegen.de/fb11/simtec/13cflux/mm.xsd">
+                 -->
+    <measurement>
+      <mlabel>
+        <!-- alle Unterelemente optional: -->
+        <date>2007-08-07 11:11:11</date>
+        <version>1.1</version>
+        <comment>Messmodell zum Spiral-Netzwerk</comment>
+        <fluxunit>gigamol/year</fluxunit>
+        <poolsizeunit>gigamol</poolsizeunit>
+      </mlabel>
+      <model stationary="false">
+        <labelingmeasurement>
+          <MSgroup   id="MS_Messung"   spec="C[1-3]#M0,1,2"         times="0.1 0.2 0.3"/>
+          <MSMSgroup id="MSMS_Messung" spec="B[1-2:2]#M(2,0),(2,1)" times="0.2" scale="one"/>
+        </labelingmeasurement>
+      </model>
+      <data id="versuch_1">
+        <dlabel>
+          <start>2007-08-07 11:11:11</start>
+          <finish>2007-08-07 11:11:12</finish>
+          <people>Michael</people>
+          <strain>Bacillus Spiralus Vulgaris</strain>
+          <comment>Messwerte für MS-Messung</comment>
+        </dlabel>
+        <!-- MS-Messung ms_1: -->
+        <datum id="MS_Messung" time="0.1" stddev="0.1" weight="0">4.321</datum>
+        <datum id="MS_Messung" time="0.1" stddev="0.1" weight="1">1.2</datum>
+        <datum id="MS_Messung" time="0.1" stddev="0.1" weight="2">1.23</datum>
+        <datum id="MS_Messung" time="0.2" stddev="0.1" weight="0">5.301</datum>
+        <datum id="MS_Messung" time="0.2" stddev="0.1" weight="1">2.219</datum>
+        <datum id="MS_Messung" time="0.2" stddev="0.1" weight="2">1.27</datum>
+        <datum id="MS_Messung" time="0.3" stddev="0.1" weight="0">3.1</datum>
+        <datum id="MS_Messung" time="0.3" stddev="0.1" weight="1">3.88</datum>
+        <datum id="MS_Messung" time="0.3" stddev="0.1" weight="2">3.36</datum>
+
+        <datum id="MSMS_Messung" time="0.2" stddev="0.1" weight="2,0">5.31</datum>
+        <datum id="MSMS_Messung" time="0.2" stddev="0.1" weight="2,1">2.21</datum>
+      </data>
+    </measurement>
+ 
+    <simulation type="full" method="cumomer">
+      <!-- full := Alle Cumomere / Isotopomere;
+           subset := Spezifikation in Cumomer-Kurznotation;
+	   auto := Gemäß Messmodell -->
+      <variables>
+        <fluxvalue flux="v2" type="net">0.8</fluxvalue>
+	<!-- <fluxvalue flux="v4" type="xch">0.02</fluxvalue> -->
+        <poolsize pool="C" lo="0.01" inc="0.01" hi="0.5">0.2</poolsize>
+      </variables>
+    </simulation>
+
+  </configuration>
+</fluxml>
+<!-- vim:set shiftwidth=2:set expandtab: -->

@@ -1,0 +1,429 @@
+#!/usr/bin/env python3
+# coding: utf-8
+# 
+# Copyright (c) 2018 13CFLUX2 team <info@13cflux.net>
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# 
+
+import xml.dom.minidom
+import getopt
+import sys
+import re
+import math
+
+fmlNS = 'http://www.13cflux.net/fluxml'
+parallelInfix = '_p'
+
+
+def usage():
+    print('''multiplyfml -- multiply network in fml file
+SYNTAX: muxfml (-i <FluxML input> -o <FluxML output> 
+  -i <file>   input FluxML file (stdin if omitted)
+  -o <file>   output FluxML file (stdout if omitted)
+  -h          display this help''')
+
+
+def create_multi_name(base_name, number, duplicates):
+    digits_duplicates = math.ceil(math.log10(duplicates))
+    return '{0:s}{1:s}{2:0{3:d}d}'.format(base_name, parallelInfix, number, digits_duplicates)
+
+
+def copy_pools(doc, duplicates):
+    pools = []
+    fml = doc.documentElement
+    metabolitepools = fml.getElementsByTagName('metabolitepools')[0]
+    for i in range(2, duplicates + 1):
+        pools.append(doc.createComment(' pools for duplicate %d ' % i))
+        for pool in metabolitepools.getElementsByTagName('pool'):
+            new_p = pool.cloneNode(deep=True)
+            new_p.setAttribute('id', create_multi_name(pool.getAttribute('id'), i, duplicates))
+
+            pools.append(new_p)
+    # TODO insert xml-comment that duplicated pools start here
+    for new_p in pools:
+        metabolitepools.appendChild(new_p)
+
+
+def copy_reactions(doc, duplicates):
+    reactions = []
+    fml = doc.documentElement
+    network = fml.getElementsByTagName('reactionnetwork')[0]
+
+    for i in range(2, duplicates + 1):
+        reactions.append(doc.createComment(' reactions for duplicate %d ' % i))
+        for reaction in network.getElementsByTagName('reaction'):
+            new_r = reaction.cloneNode(deep=True)
+            old_ids = reaction.getAttribute('id')
+            new_ids = []
+            for old_id in re.split('[, ]', old_ids):
+                new_id = create_multi_name(old_id, i, duplicates)
+                new_ids.append(new_id)
+            new_r.setAttribute('id', ' '.join(new_ids))
+
+            reducts = new_r.getElementsByTagName('reduct')
+            rproducts = new_r.getElementsByTagName('rproduct')
+
+            for reduct in reducts:
+                reduct.setAttribute('id', create_multi_name(reduct.getAttribute('id'), i, duplicates))
+            for rproduct in rproducts:
+                rproduct.setAttribute('id', create_multi_name(rproduct.getAttribute('id'), i, duplicates))
+
+            reactions.append(new_r)
+    for new_r in reactions:
+        network.appendChild(new_r)
+
+
+def merge_meas_spec(doc, target_cfg, source_cfgs, duplicates):
+    merge_flux_meas_spec(doc, target_cfg, source_cfgs, duplicates)
+    # TODO poolsize measurement
+    merge_labeling_meas_spec(doc, target_cfg, source_cfgs, duplicates)
+
+
+def merge_labeling_meas_spec(doc, target_cfg, source_cfgs, duplicates):
+    labeling_measurements = []
+    for i in range(1, source_cfgs.length):
+        labeling_measurements.append(doc.createComment(' labeling measurement specs for duplicate %d ' % (i + 1)))
+        if len(source_cfgs[i].getElementsByTagName('labelingmeasurement')) > 0:
+            lmeas = source_cfgs[i].getElementsByTagName('labelingmeasurement')[0]
+            for group in lmeas.getElementsByTagName('group'):
+                new_g = group.cloneNode(deep=True)
+                real_id = create_multi_name(group.getAttribute('id'), i + 1, duplicates)
+                new_g.setAttribute('id', real_id)
+
+                child = new_g.firstChild
+                while child is not None:
+                    if child.nodeType != child.TEXT_NODE:
+                        text = []
+                        if child.tagName == 'textual':
+                            text.append(child.firstChild)
+                        elif child.tagName == 'math':
+                            for ci in child.getElementsByTagName('ci'):
+                                text.append(ci.firstChild)
+
+                        for met_name in text:
+                            if met_name.nodeType == met_name.TEXT_NODE:
+                                mspec = met_name.nodeValue
+                                if mspec.find('[') != -1:
+                                    met_name.replaceWholeText(mspec.replace('[', '%s[' %
+                                                                            create_multi_name('', i + 1, duplicates)))
+                                else:
+                                    met_name.replaceWholeText(mspec.replace('#', '%s#' %
+                                                                            create_multi_name('', i + 1, duplicates)))
+                    child = child.nextSibling
+
+                labeling_measurements.append(new_g)
+
+            target = target_cfg.getElementsByTagName('labelingmeasurement')[0]
+            for new_g in labeling_measurements:
+                target.appendChild(new_g)
+
+
+def merge_flux_meas_spec(doc, target_cfg, source_cfgs, duplicates):
+    flux_measurements = []
+    for i in range(1, source_cfgs.length):
+        flux_measurements.append(doc.createComment(' flux measurement specs for duplicate %d ' % (i + 1)))
+        if len(source_cfgs[i].getElementsByTagName('fluxmeasurement')) > 0:
+            fmeas = source_cfgs[i].getElementsByTagName('fluxmeasurement')[0]
+            for group in fmeas.getElementsByTagName('netflux'):  # TODO exchange_fluxes?!
+                new_g = group.cloneNode(deep=True)
+                real_id = create_multi_name(group.getAttribute('id'), i + 1, duplicates)
+                new_g.setAttribute('id', real_id)
+
+                child = new_g.firstChild
+                while child is not None:
+                    if child.nodeType != child.TEXT_NODE:
+                        text = []
+                        if child.tagName == 'textual':
+                            text.append(child.firstChild)
+                        elif child.tagName == 'math':
+                            for ci in child.getElementsByTagName('ci'):
+                                text.append(ci.firstChild)
+
+                        for flux_name in text:
+                            if flux_name.nodeType == flux_name.TEXT_NODE:
+                                mspec = flux_name.nodeValue
+                                flux_name.replaceWholeText(create_multi_name(mspec, (i + 1), duplicates))
+                    child = child.nextSibling
+
+                flux_measurements.append(new_g)
+
+            target = target_cfg.getElementsByTagName('fluxmeasurement')[0]
+            for new_g in flux_measurements:
+                target.appendChild(new_g)
+
+
+def merge_meas_data(doc, target_cfg, source_cfgs, duplicates):
+    measurement_data = []
+    for i in range(1, source_cfgs.length):
+        measurement_data.append(doc.createComment(' measurement data for duplicate %d ' % (i + 1)))
+        meas_data = source_cfgs[i].getElementsByTagName('data')[0]
+        for datum in meas_data.getElementsByTagName('datum'):
+            real_id = create_multi_name(datum.getAttribute('id'), i+1, duplicates)
+            new_datum = datum.cloneNode(deep=True)
+            new_datum.setAttribute('id', real_id)
+            measurement_data.append(new_datum)
+
+    target = target_cfg.getElementsByTagName('data')[0]
+    for new_d in measurement_data:
+        target.appendChild(new_d)
+
+
+def copy_constraints(doc, duplicates):
+    net_constraints = []
+    xch_constraints = []
+    fml = doc.documentElement
+    constraints = fml.getElementsByTagName('constraints')[0]
+    net = constraints.getElementsByTagName('net')[0].getElementsByTagName('math')[0]
+    xch = constraints.getElementsByTagName('xch')[0].getElementsByTagName('math')[0]
+    net_eqs = net.getElementsByTagName('eq')
+    xch_eqs = xch.getElementsByTagName('eq')
+
+    for net_eq in net_eqs:
+        apply_node = net_eq.parentNode
+        if apply_node.tagName != 'apply':
+            print('sth went wrong. eqs parent node is %s' % apply_node.tagName)
+        else:
+            for i in range(2, duplicates + 1):
+                clone = apply_node.cloneNode(deep=True)
+                cis = clone.getElementsByTagName('ci')
+                for ci in cis:
+                    ci.firstChild.replaceWholeText(create_multi_name(ci.firstChild.nodeValue, i, duplicates))
+                declare = doc.createElement('declare')
+                identifier = doc.createElement('ci')
+                identifier.appendChild(doc.createTextNode('copy %d' % i))
+                declare.appendChild(identifier)
+                declare.appendChild(clone)
+                net_constraints.append(declare)
+
+    for xch_eq in xch_eqs:
+        apply_node = xch_eq.parentNode
+        if apply_node.tagName != 'apply':
+            print('sth went wrong. eqs parent node is %s' % apply_node.tagName)
+        else:
+            for i in range(2, duplicates + 1):
+                clone = apply_node.cloneNode(deep=True)
+                cis = clone.getElementsByTagName('ci')
+                for ci in cis:
+                    ci.firstChild.replaceWholeText(create_multi_name(ci.firstChild.nodeValue, i, duplicates))
+                declare = doc.createElement('declare')
+                identifier = doc.createElement('ci')
+                identifier.appendChild(doc.createTextNode('copy %d' % i))
+                declare.appendChild(identifier)
+                declare.appendChild(clone)
+                xch_constraints.append(declare)
+
+    for new_c in net_constraints:
+        net.appendChild(new_c)
+
+    for new_c in xch_constraints:
+        xch.appendChild(new_c)
+
+
+def constrain_free_fluxes(doc, duplicates):
+    net_constraints = []
+    xch_constraints = []
+    fml = doc.documentElement
+    fluxes = fml.getElementsByTagName('fluxvalue')
+    for i in range(2, duplicates + 1):
+        net_constraints.append(doc.createComment(' free net flux constraints for duplicate %d ' % i))
+        xch_constraints.append(doc.createComment(' free xch flux constraints for duplicate %d ' % i))
+        for free_flux in fluxes:
+            constraint = doc.createElement('declare')
+            c_name = doc.createElement('ci')
+            c_name.appendChild(doc.createTextNode('fix %s' %
+                                                  create_multi_name(free_flux.getAttribute('flux'), i, duplicates)))
+            constraint.appendChild(c_name)
+            apply = doc.createElement('apply')
+            apply.appendChild(doc.createElement('eq'))
+            copy_flux = doc.createElement('ci')
+            copy_flux.appendChild(doc.createTextNode(create_multi_name(free_flux.getAttribute('flux'), i, duplicates)))
+            apply.appendChild(copy_flux)
+            orig_flux = doc.createElement('ci')
+            orig_flux.appendChild(doc.createTextNode('%s' % free_flux.getAttribute('flux')))
+            apply.appendChild(orig_flux)
+            constraint.appendChild(apply)
+
+            if free_flux.getAttribute('type') == 'net':
+                net_constraints.append(constraint)
+            elif free_flux.getAttribute('type') == 'xch':
+                xch_constraints.append(constraint)
+
+    constraints = fml.getElementsByTagName('constraints')[0]
+    net = constraints.getElementsByTagName('net')[0].getElementsByTagName('math')[0]
+    xch = constraints.getElementsByTagName('xch')[0].getElementsByTagName('math')[0]
+
+    for nc in net_constraints:
+        net.appendChild(nc)
+    for xc in xch_constraints:
+        xch.appendChild(xc)
+
+
+def merge_input_pools(doc, target_cfg, source_cfgs, duplicates):
+    i_pools = []
+    for i in range(1, source_cfgs.length):
+        i_pools.append(doc.createComment(' input pools for duplicate %d ' % (i + 1)))
+        inputs = source_cfgs[i].getElementsByTagName('input')
+        for input_p in inputs:
+            new_i = input_p.cloneNode(deep=True)
+            new_i.setAttribute('pool', create_multi_name(input_p.getAttribute('pool'), i + 1, duplicates))
+
+            i_pools.append(new_i)
+
+    insert_before = target_cfg.getElementsByTagName('input')[-1].nextSibling
+    for i_pool in i_pools:
+        target_cfg.insertBefore(i_pool, insert_before)
+
+
+def flatten_config(doc, duplicates):
+    fml = doc.documentElement
+    configurations = fml.getElementsByTagName('configuration')
+    flat_config = configurations[0].cloneNode(deep=True)
+    flat_config.setAttribute('name', 'parallel')
+    merge_input_pools(doc, flat_config, configurations, duplicates)
+    merge_meas_spec(doc, flat_config, configurations, duplicates)
+    merge_meas_data(doc, flat_config, configurations, duplicates)
+
+    for cfg in configurations:
+        fml.removeChild(cfg)
+    fml.appendChild(flat_config)
+
+
+def check_file(doc):
+    fml = doc.documentElement
+    configurations = fml.getElementsByTagName('configuration')
+
+    for cfg in configurations:
+        constraints = cfg.getElementsByTagName('constraints')
+        if len(constraints) > 0:
+            print('cfg %s has constraints. Only global constraints are allowed. Aborting' % cfg.getAttribute('name'))
+            exit(-1)
+
+    constraints = fml.getElementsByTagName('constraints')
+    if len(constraints) == 0:
+        temp = doc.createElement('constraints')
+        fml.appendChild(temp)
+        constraints = fml.getElementsByTagName('constraints')
+
+    net_cs = constraints[0].getElementsByTagName('net')
+    xch_cs = constraints[0].getElementsByTagName('xch')
+    if len(net_cs) > 1:
+        print('At most one net constraint section expected. Found %d. Aborting' % len(net_cs))
+    if len(xch_cs) > 1:
+        print('At most one xch constraint section expected. Found %d. Aborting' % len(xch_cs))
+
+    if len(net_cs) == 0:
+        net = doc.createElement('net')
+        constraints[0].appendChild(net)
+        net_cs = constraints[0].getElementsByTagName('net')
+    if len(xch_cs) == 0:
+        xch = doc.createElement('xch')
+        constraints[0].appendChild(xch)
+        xch_cs = constraints[0].getElementsByTagName('xch')
+
+    net_txt_cs = net_cs[0].getElementsByTagName('textual')
+    if len(net_txt_cs) != 0:
+        print('Constraints must not be expressed in textual format (net). Aborting')
+        exit(-1)
+
+    xch_txt_cs = xch_cs[0].getElementsByTagName('textual')
+    if len(xch_txt_cs) != 0:
+        print('Constraints must not be expressed in textual format (xch). Aborting')
+        exit(-1)
+
+    net_math_cs = net_cs[0].getElementsByTagName('math')
+    xch_math_cs = xch_cs[0].getElementsByTagName('math')
+    if len(net_math_cs) > 1:
+        print('At most one math constraint section expectet. Found %d (net). Aborting' % len(net_math_cs))
+        exit(-1)
+    if len(xch_math_cs) > 1:
+        print('At most one math constraint section expectet. Found %d (xch). Aborting' % len(xch_math_cs))
+        exit(-1)
+
+    if len(net_math_cs) == 0:
+        math_node = doc.createElement('math')
+        math_node.setAttribute('xmlns', 'http://www.w3.org/1998/Math/MathML')
+        net_cs[0].appendChild(math_node)
+    if len(xch_math_cs) == 0:
+        math_node = doc.createElement('math')
+        math_node.setAttribute('xmlns', 'http://www.w3.org/1998/Math/MathML')
+        xch_cs[0].appendChild(math_node)
+
+
+def main():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "i:o:h", ['in=', 'out=', 'help'])
+    except getopt.GetoptError:
+        print('wrong command line options')
+        usage()
+        sys.exit(1)
+
+    opt_infmlfile = None
+    opt_outfmlfile = None
+
+    for o, a in opts:
+        if o in ('-i', '--in'):
+            opt_infmlfile = a
+        elif o in ('-o', '--out'):
+            opt_outfmlfile = a
+        elif o in ('-h', '--help'):
+            usage()
+            sys.exit(0)
+        else:
+            print('unknown parameter: "%s"' % o)
+            usage()
+            sys.exit(1)
+
+    infmlfd = sys.stdin
+    try:
+        if opt_infmlfile is not None:
+            infmlfd = open(opt_infmlfile, 'r')
+    except IOError:
+        print('failed to open FML file "%s"' % opt_infmlfile)
+        sys.exit(1)
+
+    # open FML output file (parameter -o)
+    outfmlfd = sys.stdout
+    try:
+        if opt_outfmlfile is not None:
+            outfmlfd = open(opt_outfmlfile, 'wb')
+    except IOError:
+        print('failed to open FML file "%s"' % opt_outfmlfile)
+        sys.exit(1)
+
+    fluxml_tree = xml.dom.minidom.parse(infmlfd)
+
+    check_file(fluxml_tree)
+
+    opt_num = fluxml_tree.getElementsByTagName('configuration').length
+
+    copy_pools(fluxml_tree, opt_num)
+    copy_reactions(fluxml_tree, opt_num)
+
+    flatten_config(fluxml_tree, opt_num)
+
+    copy_constraints(fluxml_tree, opt_num)
+    constrain_free_fluxes(fluxml_tree, opt_num)
+
+    pretty_xml = '\n'.join([line for line in fluxml_tree.toprettyxml(indent='  ').split('\n') if line.strip()])
+    outfmlfd.write(pretty_xml.encode(encoding='UTF-8'))
+
+
+if __name__ == "__main__":
+    main()

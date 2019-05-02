@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><fluxml xmlns="http://www.13cflux.net/fluxml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.13cflux.net/fluxml http://www.13cflux.net/fluxml">
+<info>
+    <version>1.1</version>
+    <comment>KN: CN-Spirallus-Example With MS measurements</comment>
+</info>
+<reactionnetwork>
+	<metabolitepools>		
+		<pool atoms="2" cfg="C1N1" id="A"/> 
+		<pool atoms="2" cfg="C1N1" id="B"/>
+		<pool atoms="4" cfg="C2N2" id="C"/>
+		<pool atoms="3" cfg="C2N1" id="D"/>
+		<pool atoms="2" cfg="C1N1" id="E"/>
+		<pool atoms="1" cfg="C1N0" id="G"/>
+		<pool atoms="1" cfg="C0N1" id="F"/>
+		<pool atoms="2" cfg="C1N1" id="H"/>		
+	</metabolitepools>
+
+	<reaction bidirectional="false" id="v1">
+		<reduct cfg="C#1@1 N#2@1" id="A"/>
+		<rproduct cfg="C#1@1 N#2@1" id="B"/>
+	</reaction>
+	<reaction bidirectional="false" id="v6">
+		<reduct cfg="C#1@1 C#2@1 N#3@1" id="D"/>
+		<rproduct cfg="C#2@1 N#3@1" id="E"/>
+		<rproduct cfg="C#1@1" id="G"/>
+	</reaction>
+	<reaction bidirectional="true" id="v2">
+		<reduct cfg="C#1@1 N#2@1" id="B"/>
+		<rproduct cfg="C#1@1 N#2@1" id="E"/>
+	</reaction>
+	<reaction bidirectional="false" id="v3">
+		<reduct cfg="C#1@1 N#2@1" id="B"/>
+		<reduct cfg="C#1@2 N#2@2" id="E"/>
+		<rproduct cfg="C#1@1 C#1@2 N#2@1 N#2@2" id="C"/>
+	</reaction>
+	<reaction bidirectional="false" id="v5">
+		<reduct cfg="C#1@1 C#2@1 N#3@1 N#4@1" id="C"/>
+		<rproduct cfg="C#1@1 C#2@1 N#3@1" id="D"/>
+		<rproduct cfg="N#4@1" id="F"/>
+	</reaction>
+	<reaction bidirectional="false" id="v4">
+		<reduct cfg="C#1@1 N#2@1" id="E"/>
+		<rproduct cfg="C#1@1 N#2@1" id="H"/>
+	</reaction>
+	<reaction bidirectional="false" id="h_ouz">
+		<annotation name="pathway"/>
+		<reduct cfg="C#1@1 N#2@1" id="H"/>
+		</reaction>
+	<reaction bidirectional="false" id="g_ouz">
+		<annotation name="pathway"/>
+		<reduct cfg="C#1@1" id="G"/>
+		</reaction>
+	<reaction bidirectional="false" id="f_out">
+		<annotation name="pathway"/>
+		<reduct cfg="N#1@1" id="F"/>
+		</reaction>
+</reactionnetwork>
+
+
+<constraints>
+  	<net>
+  		<textual>
+  			v1&lt;= 100;
+  			v1&gt;= 1;
+
+  			v2&lt;= 70;
+  			v2&gt;= 0.7;
+
+        v2&lt;=v1;
+  		</textual>
+  	</net>
+
+    <xch>
+      <textual>
+        v2&lt;= 1;
+        v2&gt;= 0.01;
+      </textual>
+  </xch>
+</constraints>
+
+
+<configuration name="default" stationary="true">
+	<comment>spirallus synthetic CN measurement data</comment>
+	<input pool="A" type="isotopomer">
+		<label cfg="01" purity="0.99 0.88">0.98</label>
+		<label cfg="10" purity="0.77 0.66">0.02</label>
+	</input>
+
+	<measurement>
+		<model>
+			<labelingmeasurement>				
+				<group id="gen_group_1" scale="auto">
+					<textual>B[1-2]#M(0,0),(0,1),(1,0),(1,1)</textual>
+				</group>
+
+				<group id="gen_group_2" scale="auto">
+					<textual>C[1-4]#M(0,0),(1,1),(2,2),(2,1)</textual>
+				</group>
+			</labelingmeasurement>
+		</model>
+		<data>					
+			<datum id="gen_group_1" stddev="0.001" weight="0,0">.1244812502157005</datum>
+			<datum id="gen_group_1" stddev="0.001" weight="0,1">.56213595942762747</datum>
+			<datum id="gen_group_1" stddev="0.001" weight="1,0">.07898954578158745</datum>
+			<datum id="gen_group_1" stddev="0.001" weight="1,1">.1204887542762747</datum>
+
+
+			<datum id="gen_group_2" stddev="0.001" weight="0,0">.1244812502157005</datum>
+			<datum id="gen_group_2" stddev="0.001" weight="1,1">.56213595942762747</datum>
+			<datum id="gen_group_2" stddev="0.001" weight="2,2">.07898954578158745</datum>
+			<datum id="gen_group_2" stddev="0.001" weight="2,1">.1204887542762747</datum>
+		</data>
+	</measurement>
+	<simulation method="auto" type="auto">	
+		<variables>
+			<fluxvalue flux="v1" type="net">1.0</fluxvalue>
+			<fluxvalue flux="v2" type="net">0.7</fluxvalue>
+			<fluxvalue flux="v2" type="xch">0.4</fluxvalue>
+			</variables>
+	</simulation>
+</configuration>
+
+</fluxml>

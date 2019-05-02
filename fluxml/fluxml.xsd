@@ -1,0 +1,695 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="https://www.w3.org/2001/XMLSchema" xmlns:mml="https://www.w3.org/1998/Math/MathML" xmlns="https://www.13cflux.net/fluxml" targetNamespace="https://www.13cflux.net/fluxml" elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      XML Schema definition for FluxML.
+
+      (c) Michael Weitzel, info(at)13cflux.net, v1.0 
+            + isotopically stationary 13C-MFA
+
+      (c) Salah Azzouzi, info(at)13cflux.net,   v1.1 
+            + Revised version of isotopically stationary 13C-MFA (v1.0):
+              - providing advanced XML schema validation mechanisms
+              - specification of metabolic flux ratios
+              - adding error model for flux measurements
+              - editing/adding further attributes (version, modeler, strain, etc.)
+              - offering further helpful measurement informations (../experiment, ../analytics, ../analysis)
+
+      (c) Salah Azzouzi, info(at)13cflux.net,   v2.0 
+            + isotopically non-stationary 13C-MFA:
+              - specification of time-based measurements data
+              - specification of non-stationary simulation variable "poolsizevalue" and poolsize-constrains "psize"
+              - specification of highly customizable substrate profile
+              - adding error model for poolsize measurements
+              - specification of metabolic poolsize ratios
+              - introduction of "inf" as timestamp
+
+      (c) Salah Azzouzi, info(at)13cflux.net,   v3.0 
+            + Multitracer-based MFA:
+              - extention of atom mapping mechanism to support multitracers
+              - defining additional atom specific informations in pool element (matching number of atoms, specify atom configuration)
+              - specifying multitracer input substrate with extended purities
+              - defining a new MS measurement type to support multiple isotope labeling experiment
+
+    </xs:documentation>
+  </xs:annotation>
+  <xs:import namespace="https://www.w3.org/1998/Math/MathML" schemaLocation="httpsge://www.w3.org/Math/XMLSchema/mathml2/mathml2.xsd"/>
+  <!-- root element fluxml -->
+  <xs:element name="fluxml">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="info"/>
+        <xs:element ref="reactionnetwork"/>
+        <xs:element minOccurs="0" ref="constraints"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="configuration"/>
+      </xs:sequence>
+    </xs:complexType>
+    <!-- defined as primary-key to ensure the uniqueness of pool-IDs -->
+    <xs:key name="keyPoolID">
+      <xs:selector xpath=".//pool"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <!-- defined as foreign-key in reduct-element and refers to poolID in pool-element -->
+    <xs:keyref refer="keyPoolID" name="keyrefReduct">
+      <xs:selector xpath=".//reduct"/>
+      <xs:field xpath="@id"/>
+    </xs:keyref>
+    <!-- defined as foreign-key in rdproduct-element and refers to poolID in pool-element -->
+    <xs:keyref refer="keyPoolID" name="keyrefRproduct">
+      <xs:selector xpath=".//rproduct"/>
+      <xs:field xpath="@id"/>
+    </xs:keyref>
+    <!-- defined as foreign-key in input-element and refers to poolID in pool-element -->
+    <xs:keyref refer="keyPoolID" name="keyrefInput">
+      <xs:selector xpath=".//input"/>
+      <xs:field xpath="@pool"/>
+    </xs:keyref>
+    <!-- defined as foreign-key in poolvalue-element and refers to poolID in pool-element -->
+    <xs:keyref refer="keyPoolID" name="keyrefPoolvalue">
+      <xs:selector xpath=".//poolvalue"/>
+      <xs:field xpath="@pool"/>
+    </xs:keyref>
+    <!--  ensure that the configuration name are unique  -->
+    <xs:unique name="uniqueConfigurationName">
+      <xs:selector xpath=".//configuration"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+    <!-- defined as unique for reaction element to ensure that their name are unique -->
+    <xs:key name="keyReactionName">
+      <xs:selector xpath=".//reaction"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <!-- defined as foreign-key in fluxvalue-element and refers to reaction name-->
+    <xs:keyref refer="keyReactionName" name="keyrefFluxValue">
+      <xs:selector xpath=".//fluxvalue"/>
+      <xs:field xpath="@flux"/>
+    </xs:keyref>
+  </xs:element>
+  <!-- root element mixture -->
+  <xs:element name="mixture">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="input"/>
+      </xs:sequence>
+      <xs:attribute name="objvalue" type="xs:double" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/info -->
+  <xs:element name="info">
+    <xs:complexType>
+      <xs:all>
+        <xs:element minOccurs="0" ref="name"/>
+        <xs:element minOccurs="0" ref="version"/>
+        <xs:element minOccurs="0" ref="date"/>
+        <xs:element minOccurs="0" ref="comment"/>
+        <xs:element minOccurs="0" ref="signature"/>
+        <xs:element minOccurs="0" ref="modeler"/>
+        <xs:element minOccurs="0" ref="strain"/>
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/info/name -->
+  <xs:element name="name" type="xs:string"/>
+  <!-- fluxml/info/version -->
+  <xs:element name="version" type="xs:string"/>
+  <!-- fluxml/info/date -->
+  <xs:element name="date" type="TSType"/>
+  <xs:simpleType name="TSType">
+    <xs:restriction base="xs:string">
+      <!-- conforming to strftime('%Y-%m-%d %H:%M:%S',gmtime(fTimestamp)) e.g. 2015-08-10 12:31:17-->
+      <xs:pattern value="\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- fluxml/info/comment -->
+  <xs:element name="comment" type="xs:string"/>
+  <!-- fluxml/info/signature -->
+  <xs:element name="signature" type="xs:base64Binary"/>
+  <!-- fluxml/info/modeler -->
+  <xs:element name="modeler" type="xs:string"/>
+  <!-- fluxml/info/strain -->
+  <xs:element name="strain" type="xs:string"/>
+  <!-- fluxml/reactionnetwork/metabolitepools/pool/annotation
+       fluxml/reactionnetwork/reaction/annotation -->
+  <xs:element name="annotation">
+    <xs:complexType mixed="true">
+      <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/reactionnetwork -->
+  <xs:element name="reactionnetwork">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="metabolitepools"/>
+        <xs:element maxOccurs="unbounded" ref="reaction"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/reactionnetwork/metabolitepools -->
+  <xs:element name="metabolitepools">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="2" maxOccurs="unbounded" ref="pool"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/reactionnetwork/metabolitepools/pool -->
+  <xs:element name="pool">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="annotation"/>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+      <xs:attribute name="atoms" use="optional" default="0" type="AtomType"/>
+      <xs:attribute name="size" use="optional" default="1" type="xs:double"/>
+      <xs:attribute name="cfg" use="optional" default="0" type="AtomCfgType"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="AtomType">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="1024"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="WeightType">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="16"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ComposedWeightType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\d+(\s*,\s*\d+)?"/> 
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="CfgType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="([A-Za-z]+|(\s*[CHNOS]#[0-9]+@[A-Za-z0-9]+(\s+[CHNOS]#[0-9]+@[A-Za-z0-9]+)*\s*))"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="AtomCfgType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="([A-Za-z]+|(\s*[CHNOS]#[0-9]+(\s+[CHNOS]#[0-9]+)*\s*))"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- fluxml/reactionnetwork/reaction -->
+  <xs:element name="reaction">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="annotation"/>
+        <xs:element maxOccurs="unbounded" ref="reduct"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="rproduct"/>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+      <xs:attribute name="bidirectional" type="xs:boolean" default="true" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/reactionnetwork/reaction/reduct -->
+  <xs:element name="reduct">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="variant"/>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+      <xs:attribute name="cfg" type="CfgType" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/reactionnetwork/reaction/rproduct -->
+  <xs:element name="rproduct">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="variant"/>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+      <xs:attribute name="cfg" type="CfgType" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/reactionnetwork/reaction/(reduct|rproduct)/variant -->
+  <xs:element name="variant">
+    <xs:complexType>
+      <xs:attribute name="cfg" type="CfgType" use="required"/>
+      <xs:attribute name="ratio" type="xs:double" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/constraints -->
+  <xs:element name="constraints">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="net"/>
+        <xs:element minOccurs="0" ref="xch"/>
+        <xs:element minOccurs="0" ref="psize"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/constraints/net -->
+  <xs:element name="net">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="textual"/>
+        <xs:element ref="mml:math"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/constraints/xch -->
+  <xs:element name="xch">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="textual"/>
+        <xs:element ref="mml:math"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/constraints/psize -->
+  <xs:element name="psize">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="textual"/>
+        <xs:element ref="mml:math"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/constraints/(net|xch|psize)/textual -->
+  <xs:element name="textual" type="xs:string"/>
+  <!-- fluxml/configuration -->
+  <xs:element name="configuration">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="comment"/>
+        <xs:element maxOccurs="unbounded" ref="input"/>
+        <xs:element minOccurs="0" ref="constraints"/>
+        <xs:element minOccurs="0" ref="measurement"/>
+        <xs:element minOccurs="0" ref="simulation"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="stationary" type="xs:boolean" default="true"/>
+      <xs:attribute name="time" type="xs:double" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- see above for element "comment" -->
+  <!-- fluxml/configuration/input, mixture/input -->
+  <xs:element name="input">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="label"/>
+      </xs:sequence>
+      <!-- for mixture/input  -->
+      <xs:attribute name="id" type="xs:string" use="optional"/>
+      <xs:attribute name="pool" type="xs:string" use="required"/>
+      <xs:attribute name="type" default="isotopomer" use="optional">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="isotopomer"/>
+            <xs:enumeration value="cumomer"/>
+            <xs:enumeration value="emu"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="profile" type="TimesType" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/input/label -->
+  <xs:element name="label">
+    <xs:complexType mixed="true">
+      <xs:choice>
+        <xs:sequence>
+          <!-- sep for emus -->
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="sep"/>
+        </xs:sequence>
+        <xs:choice>
+          <xs:element ref="textual"/>
+          <xs:element ref="mml:math"/>
+        </xs:choice>
+      </xs:choice>
+      <xs:attribute name="cfg" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="[01xX]+"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="purity" type="xs:string" use="optional"/>
+      <xs:attribute name="cost" type="xs:double" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- see above for element "constraints" -->
+  <!-- fluxml/configuration/input/label/sep -->
+  <xs:element name="sep">
+    <xs:complexType/>
+  </xs:element>
+  <!-- fluxml/configuration/measurement -->
+  <xs:element name="measurement">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="mlabel"/>
+        <xs:element ref="model"/>
+        <xs:element ref="data"/>
+      </xs:sequence>
+    </xs:complexType>
+    <!-- defined as primary-key to ensure the uniqueness of Group-IDs -->
+    <xs:key name="keyMeasurementData">
+      <xs:selector xpath=".//group | .//poolsize | .//netflux | .//xchflux | .//netratio | .//xchratio | .//poolsizeratio"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <!-- defined as foreign-key in datum-element and refers to (p-)group-/fluxID -->
+    <xs:keyref refer="keyMeasurementData" name="keyrefDatum">
+      <xs:selector xpath=".//datum"/>
+      <xs:field xpath="@id"/>
+    </xs:keyref>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/mlabel -->
+  <xs:element name="mlabel">
+    <xs:complexType>
+      <xs:all>
+        <xs:element minOccurs="0" ref="date"/>
+        <xs:element minOccurs="0" ref="version"/>
+        <xs:element minOccurs="0" ref="comment"/>
+        <xs:element minOccurs="0" ref="fluxunit"/>
+        <xs:element minOccurs="0" ref="poolsizeunit"/>
+        <xs:element minOccurs="0" ref="timeunit"/>
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+  <!-- see above for elements "date", "version", "comment" -->
+  <!-- fluxml/configuration/measurement/mlabel/fluxunit -->
+  <xs:element name="fluxunit" type="xs:string"/>
+  <!-- fluxml/configuration/measurement/mlabel/poolsizeunit -->
+  <xs:element name="poolsizeunit" type="xs:string"/>
+  <!-- fluxml/configuration/measurement/mlabel/timeunit -->
+  <xs:element name="timeunit" type="xs:string"/>
+  <!-- fluxml/configuration/measurement/model -->
+  <xs:element name="model">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="labelingmeasurement"/>
+        <xs:element minOccurs="0" ref="fluxmeasurement"/>
+        <xs:element minOccurs="0" ref="poolsizemeasurement"/>
+        <xs:element minOccurs="0" ref="fluxratios"/>
+        <xs:element minOccurs="0" ref="poolsizeratios"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/labelingmeasurement -->
+  <xs:element name="labelingmeasurement">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="group"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- comma-separated-doules -->
+  <xs:simpleType name="TimesType">
+    <xs:restriction base="xs:string">
+      <xs:whiteSpace value="collapse"/>
+      <xs:pattern value="(((\+|\-)?(0|[1-9][0-9]*|inf|INF)?(\.[0-9]*)?((E|e)(\+|\-)?[0-9]+)?)?( )?(,)?( )?)*"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="GroupScaleType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="auto"/>
+      <xs:enumeration value="one"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- fluxml/configuration/measurement/model/labelingmeasurement/group -->
+  <xs:element name="group">
+    <xs:complexType mixed="true">
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="errormodel"/>
+        <xs:choice>
+          <xs:element ref="textual"/>
+          <xs:element ref="mml:math"/>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+      <xs:attribute name="times" type="TimesType" use="optional"/>
+      <xs:attribute name="scale" type="GroupScaleType" default="auto"/>
+      <!--<xs:attribute name="edscale" type="EDScaleType" use="optional" default="0 1"/>-->
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/labelingmeasurement/group/errormodel -->
+  <xs:element name="errormodel">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="textual"/>
+        <xs:element ref="mml:math"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/fluxmeasurement -->
+  <xs:element name="fluxmeasurement">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="netflux"/>
+        <xs:element ref="xchflux"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/fluxmeasurement/netflux -->
+  <xs:element name="netflux">
+    <xs:complexType mixed="true">
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="errormodel"/>
+        <xs:choice>
+          <xs:element ref="textual"/>
+          <xs:element ref="mml:math"/>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/fluxmeasurement/xchflux -->
+  <xs:element name="xchflux">
+    <xs:complexType mixed="true">
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="errormodel"/>
+        <xs:choice>
+          <xs:element ref="textual"/>
+          <xs:element ref="mml:math"/>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/poolsizemeasurement -->
+  <xs:element name="poolsizemeasurement">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="poolsize"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/poolsizemeasurement/poolsize -->
+  <xs:element name="poolsize">
+    <xs:complexType mixed="true">
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="errormodel"/>
+        <xs:choice>
+          <xs:element ref="textual"/>
+          <xs:element ref="mml:math"/>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/fluxratios -->
+  <xs:element name="fluxratios">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="netratio"/>
+        <xs:element ref="xchratio"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/fluxratios/netratio -->
+  <xs:element name="netratio">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="textual"/>
+        <xs:element ref="mml:math"/>
+      </xs:choice>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/fluxratios/xchratio -->
+  <xs:element name="xchratio">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="textual"/>
+        <xs:element ref="mml:math"/>
+      </xs:choice>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/poolsizeratios -->
+  <xs:element name="poolsizeratios">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="poolsizeratio"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/model/poolsizeratios/poolsizeratio -->
+  <xs:element name="poolsizeratio">
+    <xs:complexType>
+      <xs:choice>
+        <xs:element ref="textual"/>
+        <xs:element ref="mml:math"/>
+      </xs:choice>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/data -->
+  <xs:element name="data">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="dlabel"/>
+        <xs:element maxOccurs="unbounded" ref="datum"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/data/dlabel -->
+  <xs:element name="dlabel">
+    <xs:complexType>
+      <xs:all>
+        <xs:element minOccurs="0" name="strain" type="xs:string"/>
+        <xs:element minOccurs="0" name="date" type="TSType"/>
+        <xs:element minOccurs="0" ref="experiment"/>
+        <xs:element minOccurs="0" ref="analytics"/>
+        <xs:element minOccurs="0" ref="analysis"/>
+        <xs:element minOccurs="0" ref="comment"/>
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/data/dlabel/experiment -->
+  <xs:element name="experiment">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" name="operator" type="xs:string"/>
+        <xs:element minOccurs="1" name="description" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/data/dlabel/analytics -->
+  <xs:element name="analytics">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" name="operator" type="xs:string"/>
+        <xs:element minOccurs="1" name="description" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/data/dlabel/analysis -->
+  <xs:element name="analysis">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="1" name="operator" type="xs:string"/>
+        <xs:element minOccurs="1" name="description" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/measurement/data/datum -->
+  <xs:element name="datum">
+    <xs:complexType mixed="true">
+      <xs:attribute name="id" type="xs:string" use="required"/>
+      <xs:attribute name="stddev" type="xs:double" use="required"/>
+      <xs:attribute name="row" use="optional">
+        <xs:simpleType>
+          <xs:restriction base="xs:integer">
+            <xs:minInclusive value="1"/>
+            <xs:maxInclusive value="256"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="time" type="xs:double" use="optional"/>
+      <xs:attribute name="weight" type="ComposedWeightType" use="optional"/>
+      <xs:attribute name="pos" type="AtomType" use="optional"/>
+      <xs:attribute name="type" use="optional">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="S"/>
+            <xs:enumeration value="DL"/>
+            <xs:enumeration value="DR"/>
+            <xs:enumeration value="DD"/>
+            <xs:enumeration value="T"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/simulation -->
+  <xs:element name="simulation">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="model"/>
+        <xs:element minOccurs="0" ref="variables"/>
+      </xs:sequence>
+      <xs:attribute name="type" default="auto" use="optional">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="auto"/>
+            <xs:enumeration value="explicit"/>
+            <xs:enumeration value="full"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="method" default="auto" use="optional">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="auto"/>
+            <xs:enumeration value="cumomer"/>
+            <xs:enumeration value="emu"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/simulation/variables -->
+  <xs:element name="variables">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="fluxvalue"/>
+        <xs:element ref="poolsizevalue"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/simulation/variables/fluxvalue -->
+  <xs:element name="fluxvalue">
+    <xs:complexType mixed="true">
+      <xs:attribute name="flux" type="xs:string" use="required"/>
+      <xs:attribute name="type" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="net"/>
+            <xs:enumeration value="xch"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="lo" type="xs:double" use="optional"/>
+      <xs:attribute name="hi" type="xs:double" use="optional"/>
+      <xs:attribute name="inc" type="xs:double" use="optional"/>
+      <xs:attribute name="edweight" default="1.0" use="optional">
+        <xs:simpleType>
+          <xs:restriction base="xs:double">
+            <xs:minInclusive value="0.0"/>
+            <xs:maxInclusive value="1.0"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!-- fluxml/configuration/simulation/variables/poolsizevalue -->
+  <xs:element name="poolsizevalue">
+    <xs:complexType mixed="true">
+      <xs:attribute name="pool" type="xs:string" use="required"/>
+      <xs:attribute name="lo" type="xs:double" use="optional"/>
+      <xs:attribute name="hi" type="xs:double" use="optional"/>
+      <xs:attribute name="inc" type="xs:double" use="optional"/>
+      <xs:attribute name="edweight" default="1.0" use="optional">
+        <xs:simpleType>
+          <xs:restriction base="xs:double">
+            <xs:minInclusive value="0.0"/>
+            <xs:maxInclusive value="1.0"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

@@ -1,0 +1,1446 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+#
+# FTBL to FluxML converter.
+# Michael Weitzel <info@13cflux.net>
+#
+# Reads a FTBL file on stdin and returns a FluxML file on stdout.
+# For conversion of equality- and inequality-constraints to a MathML
+# representation the external program "expr2mml" is required.
+# XML pretty printing is done using the external programm "xmllint".
+# In case "xmllint" is not available Python's pretty printing is used.
+#
+
+from xml.dom.minidom import getDOMImplementation, parseString
+from xml.sax.saxutils import escape
+from stat import ST_MTIME
+from time import strftime, gmtime
+import traceback
+from subprocess import *
+import getopt
+import gzip
+import sys
+import re
+import os
+import flux
+
+# MathML-Serializer
+prg_expr2mml = 'expr2mml'
+# XML-Lint (besseres pretty-printing)
+prg_xmllint = 'xmllint'
+
+comment_queue = []
+
+#
+# Flags (defaults)
+#
+fComments = False
+fCompressGZIP = False
+fExtraEffluxes = False
+fForcePythonPrettyPrint = False
+fTranslateToMS = True
+fListSinks = False
+fMathMLConstraints = False
+fPretty = True
+fRemoveSinks = True
+fUnMappedComments = False
+fUseInputFileTS = False
+fFreeFluxConst = False
+fUseValidation = False
+# Namespace-Bezeichnung der FluxML-Dokumente:
+fXSD_xmlns = 'http://www.13cflux.net/fluxml'
+# XML Schema-Instance um eine Schema-Location anzugeben:
+fXSD_xmlns_xsi = 'http://www.w3.org/2001/XMLSchema-instance'
+# Schema Location: "<namespace> <ort>"
+fXSD_xsi_schemaLocation = 'http://www.13cflux.net/fluxml http://www.13cflux.net/xml-schema/fluxml.xsd'
+# Praefix der Bezeichnungen zusaetzlich eingefuehrter Abfluesse
+fExtraEffluxPrefix = 'efflux_'
+# Suffix fuer zu enfernende Output-Pools
+fRemoveSinksRE = '.*'
+
+# Default-Timestamp (1970-01-01 00:00:00)
+fTimestamp = 0
+
+#
+# Liest die naechste Zeile der Eingabe und zerlegt sie in Daten und Kommentare
+# Kommentare werden in eine Queue gehaengt.
+#
+def getNextLine(ftbl):
+	global comment_queue
+	while len(ftbl) > 0:
+		line = ftbl.pop(0)
+		lc = line.split('//',1)
+		line = lc.pop(0).rstrip()
+		if len(lc) > 0 and fComments:
+			comment_queue.append(lc.pop().strip())
+		if len(line):
+			return line
+	return ''
+
+#
+# Gibt True zurueck, falls Kommentare in der Queue haengen
+#
+def commentPending():
+	global comment_queue
+	return len(comment_queue) > 0
+
+#
+# Entleert die Kommentar-Queue
+#
+def flushComments():
+	while len(comment_queue) > 0:
+		comment_queue.pop(0)
+
+#
+# Erzeugt einen DOM-Knoten mit einem Kommentar und entleert die Queue
+#
+def createCommentNode(doc):
+	comment_str = escape('\n'.join(comment_queue))
+	comment = doc.createComment(' ' + comment_str + ' ')
+	flushComments()
+	return comment
+
+def parsePROJECT(ftbl,doc,fluxml):
+	global fUseInputFileTS, fTimestamp
+	assert getNextLine(ftbl) == 'PROJECT'
+	getNextLine(ftbl) # header
+	PRJ = getNextLine(ftbl).split('\t'); del PRJ[0]
+
+	while len(PRJ)<5:
+		PRJ.append('')
+
+	NAME = PRJ.pop(0)
+	if len(NAME)==0: NAME = 'unnamed network'
+	VERSION = PRJ.pop(0)
+	if len(VERSION)==0: VERSION = '1.0'
+	FORMAT = PRJ.pop(0)
+	# Der FTBL Timestamp haelt sich an keinerlei Format und wird deshalb
+	# nicht ausgewertet
+	brokenDATE = PRJ.pop(0).strip()
+	if fUseInputFileTS:
+		DATE = strftime('%Y-%m-%d %H:%M:%S',gmtime(fTimestamp))
+	COMMENT = PRJ.pop(0)
+
+	info = doc.createElement('info')
+	name = doc.createElement('name')
+	name.appendChild(doc.createTextNode(NAME))
+	version = doc.createElement('version')
+	version.appendChild(doc.createTextNode(VERSION))
+	if fUseInputFileTS:
+		date = doc.createElement('date') # bleibt leer?!
+		date.appendChild(doc.createTextNode(DATE))
+	comment = doc.createElement('comment')
+	comment.appendChild(doc.createTextNode(COMMENT))
+	if commentPending():
+		info.appendChild(createCommentNode(doc))
+	info.appendChild(name)
+	info.appendChild(version)
+	if fUseInputFileTS:
+		info.appendChild(date)
+		info.appendChild(doc.createComment(' ' + brokenDATE + ' '))
+	info.appendChild(comment)
+	fluxml.appendChild(info)
+	# zusaetzliche Kommentare uebernehmen
+	line = getNextLine(ftbl)
+	while len(line):
+		line = getNextLine(ftbl)
+	if commentPending():
+		info.appendChild(createCommentNode(doc))
+
+def parseNETWORK(ftbl,doc,fluxml):
+	assert getNextLine(ftbl) == 'NETWORK'
+	getNextLine(ftbl) # header
+
+	rn = doc.createElement('reactionnetwork')
+	if commentPending():
+		rn.appendChild(createCommentNode(doc))
+	mp = doc.createElement('metabolitepools')
+	rn.appendChild(mp)
+	fluxml.appendChild(rn)
+
+	pools = {}
+	educt_pools = {}
+	# Eine Liste von Pools, die kein Edukt einer Reaktion sind.
+	output_pools = []
+
+	line = getNextLine(ftbl)
+	while len(line) > 0:
+		assert line.startswith('\t')
+		react = line.split('\t'); del react[0]
+		flux = react.pop(0)
+		assert len(react) >= 3
+		educt1 = react.pop(0); educt2 = react.pop(0)
+		product1 = react.pop(0); product2 = ''
+		if len(react) == 1: product2 = react.pop(0)
+		line = getNextLine(ftbl)
+		perms = line.split('\t'); del perms[0]; del perms[0]
+		assert len(perms) >= 3
+		perm_e1 = perms.pop(0); perm_e2 = perms.pop(0)
+		perm_p1 = perms.pop(0); perm_p2 = ''
+		if len(perms) == 1: perm_p2 = perms.pop(0)
+
+		# whitespace um den Flussnamen entfernen
+		flux = flux.strip();
+		# whitespace um die Poolnamen enfernen
+		educt1 = educt1.strip()
+		educt2 = educt2.strip()
+		product1 = product1.strip()
+		product2 = product2.strip()
+		# whitespace und '#' vor der Permutation entfernen
+		perm_e1 = perm_e1.strip()
+		perm_e2 = perm_e2.strip()
+		perm_p1 = perm_p1.strip()
+		perm_p2 = perm_p2.strip()
+		perm_e1 = perm_e1.lstrip('#')
+		perm_e2 = perm_e2.lstrip('#')
+		perm_p1 = perm_p1.lstrip('#')
+		perm_p2 = perm_p2.lstrip('#')
+
+		pools[educt1] = len(perm_e1)
+		if len(educt2)>0: pools[educt2] = len(perm_e2)
+		pools[product1] = len(perm_p1)
+		if len(product2)>0: pools[product2] = len(perm_p2)
+
+		ra = doc.createElement('reaction')
+		ra.setAttribute('id',flux)
+		e = doc.createElement('reduct')
+		e.setAttribute('id',educt1)
+		e.setAttribute('cfg',perm_e1)
+		ra.appendChild(e)
+		educt_pools[educt1] = True
+		if len(perm_e2):
+			e = doc.createElement('reduct')
+			e.setAttribute('id',educt2)
+			e.setAttribute('cfg',perm_e2)
+			ra.appendChild(e)
+			educt_pools[educt2] = True
+
+		e = doc.createElement('rproduct')
+		e.setAttribute('id',product1)
+		e.setAttribute('cfg',perm_p1)
+		ra.appendChild(e)
+		if len(perm_p2):
+			e = doc.createElement('rproduct')
+			e.setAttribute('id',product2)
+			e.setAttribute('cfg',perm_p2)
+			ra.appendChild(e)
+		if commentPending():
+			rn.appendChild(createCommentNode(doc))
+		rn.appendChild(ra)
+		line = getNextLine(ftbl)
+	
+	for P in sorted(pools):
+		if not (P in educt_pools):
+			output_pools.append(P)
+			if fRemoveSinks and fRemoveSinksRE.match(P):
+				continue
+		pn = doc.createElement('pool')
+		pn.setAttribute('id',P)
+		pn.setAttribute('atoms','%d' % pools[P])
+		mp.appendChild(pn)
+
+	if fListSinks:
+		output_pools.sort(key=str)
+		opools = ' sink pools: '
+		if fRemoveSinks:
+			opools = ' (removed)' + opools
+		for P in output_pools:
+			if fRemoveSinks and fRemoveSinksRE.match(P):
+				opools += '(' + P + ') '
+			else:
+				opools += P + ' '
+		mp.appendChild(doc.createComment(opools))
+
+	if fRemoveSinks:
+		rn_prods = rn.getElementsByTagName('rproduct')
+		for pnode in rn_prods:
+			if (pnode.getAttribute('id') in output_pools) and \
+				(fRemoveSinksRE.match(pnode.getAttribute('id'))):
+				pnode.parentNode.removeChild(pnode)
+	
+	if fExtraEffluxes:
+		rn.appendChild(doc.createComment(' extra effluxes '))
+		for P in output_pools:
+			ra = doc.createElement('reaction')
+			ra.setAttribute('id',fExtraEffluxPrefix + P)
+			e = doc.createElement('reduct')
+			e.setAttribute('id',P)
+			e.setAttribute('cfg',''.join([chr(97+x) for x in range(pools[P])]))
+			ra.appendChild(e)
+			rn.appendChild(ra)
+
+def parseFLUXES(ftbl,doc,fluxml):
+	def xch01_to_xch(xch01):
+		xch01 = float(xch01)
+		if xch01 == 0.: return '0'
+		if xch01 == 1.: return '1.0e37' # = DBL_MAX = Inf
+		return str(xch01 / (1.0 - xch01))
+	
+	def rangeCheck_net(fn,lo,inc,up):
+		if fn in lo: lo = float(lo[fn])
+		else: lo = None
+		if fn in inc: inc = float(inc[fn])
+		else: inc = None
+		if fn in up: up = float(up[fn])
+		else: up = None
+		#lo = float(lo[fn]) if (fn in lo) else None
+		#inc = float(inc[fn]) if (fn in inc) else None
+		#up = float(up[fn]) if (fn in up) else None
+		if inc and inc <= 0.:
+			flux.warning('INC(F) value of net flux %s is out of range (0,inf]: %s' % (fn,str(inc)))
+		if lo and up and lo > up:
+			flux.warning('LOW(F), UP(F): range of net flux %s is empty: [%s,%s]' % (fn,str(lo),str(up)))
+
+	def rangeCheck_xch01(fn,lo,inc,up):
+		if fn in lo: lo = float(lo[fn])
+		else: lo = None
+		if fn in inc: inc = float(inc[fn])
+		else: inc = None
+		if fn in up: up = float(up[fn])
+		else: up = None
+		#lo = float(lo[fn]) if (fn in lo) else None
+		#inc = float(inc[fn]) if (fn in inc) else None
+		#up = float(up[fn]) if (fn in up) else None
+		if lo and (lo < 0. or lo > 1.):
+			flux.warning('LOW(F) value of xch01 flux %s is out of range [0,1]: %s' % (fn,str(lo)))
+		if up and (up < 0. or up > 1.):
+			flux.warning('UP(F) value of xch01 flux %s is out of range [0,1]: %s' % (fn,str(up)))
+		if inc and (inc < 0. or inc > 1.):
+			flux.warning('INC(F) value of xch01 flux %s is out of range [0,1]: %s' % (fn,str(inc)))
+		if not lo: lo = 0.;
+		if not up: up = 1.;
+		if lo > up:
+			flux.warning('LOW(F), UP(F): range of xch01 flux %s is empty: [%s,%s]' % (fn,str(lo),str(up)))
+	
+	assert getNextLine(ftbl) == 'FLUXES'
+	assert getNextLine(ftbl) == '\tNET'
+	assert getNextLine(ftbl).startswith('\t\tNAME') # header
+	flux = []
+	CMT_n = {}
+	FCD_n = {}
+	VALUE_n = {}
+	ED_WEIGHT_n = {}
+	LOW_F_n = {}
+	INC_F_n = {}
+	UP_F_n = {}
+	CMT_x = {}
+	FCD_x = {}
+	VALUE_x = {}
+	ED_WEIGHT_x = {}
+	LOW_F_x = {}
+	INC_F_x = {}
+	UP_F_x = {}
+
+	line = getNextLine(ftbl)
+	while line.startswith('\t\t'):
+		F = line.split('\t'); del F[0]; del F[0]
+		fn = F.pop(0)
+		flux.append(fn)
+		if fn in FCD_n:
+			if FCD_n[fn] == F[0]:
+				flux.warning('redeclaration of net flux %s as "%s"' % (fn,F[0]))
+			else:
+				flux.error('net flux %s ("%s") redeclared as "%s"' % (fn,FCD_n[fn],F[0]))
+				sys.exit(4)
+		FCD_n[fn] = F.pop(0)
+		if len(F)>0:
+			if len(F[0])>0:
+				VALUE_n[fn] = F[0]
+			del F[0]
+		if len(F)>0:
+			if len(F[0])>0:
+				ED_WEIGHT_n[fn] = F[0]
+			del F[0]
+		if len(F)>0:
+			if len(F[0])>0:
+				LOW_F_n[fn] = F[0]
+			del F[0]
+		if len(F)>0:
+			if len(F[0])>0:
+				INC_F_n[fn] = F[0]
+			del F[0]
+		if len(F)>0:
+			if len(F[0])>0:
+				UP_F_n[fn] = F[0]
+			del F[0]
+		if commentPending():
+			CMT_n[fn] = createCommentNode(doc)
+
+		rangeCheck_net(fn,LOW_F_n,INC_F_n,UP_F_n)
+		line = getNextLine(ftbl)
+	
+	assert line == '\tXCH'
+	assert getNextLine(ftbl).startswith('\t\tNAME')
+
+	line = getNextLine(ftbl)
+	while line.startswith('\t\t'):
+		F = line.split('\t'); del F[0]; del F[0]
+		fn = F.pop(0)
+		flux.append(fn)
+		if fn in FCD_x:
+			if FCD_x[fn] == F[0]:
+				flux.warning('redeclaration of xch flux %s as "%s"' % (fn,F[0]))
+			else:
+				flux.error('xch flux %s ("%s") redeclared as "%s"' % (fn,FCD_x[fn],F[0]))
+				sys.exit(4)
+		FCD_x[fn] = F.pop(0)
+		if len(F)>0:
+			if len(F[0])>0:
+				vx = float(F[0])
+				if vx < 0. or vx > 1.:
+					flux.warning('value of xch01 flux %s is out of range [0,1]: %s' % (fn,F[0]))
+				VALUE_x[fn] = F[0]
+			del F[0]
+		if len(F)>0:
+			if len(F[0])>0:
+				ED_WEIGHT_x[fn] = F[0]
+			del F[0]
+		if len(F)>0:
+			if len(F[0])>0:
+				LOW_F_x[fn] = F[0]
+			del F[0]
+		if len(F)>0:
+			if len(F[0])>0:
+				INC_F_x[fn] = F[0]
+			del F[0]
+		if len(F)>0:
+			if len(F[0])>0:
+				UP_F_x[fn] = F[0]
+			del F[0]
+		if commentPending():
+			CMT_x[fn] = createCommentNode(doc)
+
+		rangeCheck_xch01(fn,LOW_F_x,INC_F_x,UP_F_x)
+		line = getNextLine(ftbl)
+
+	# XCH01 nach XCH konvertieren
+	tmp = {}
+	for fn in VALUE_x:
+		tmp[fn] = xch01_to_xch(VALUE_x[fn])
+	VALUE_x = tmp
+	tmp = {}
+	for fn in LOW_F_x:
+		tmp[fn] = xch01_to_xch(LOW_F_x[fn])
+	LOW_F_x = tmp
+	tmp = {}
+	for fn in INC_F_x:
+		tmp[fn] = xch01_to_xch(INC_F_x[fn])
+	INC_F_x = tmp
+	tmp = {}
+	for fn in UP_F_x:
+		tmp[fn] = xch01_to_xch(UP_F_x[fn])
+	UP_F_x = tmp
+	
+	# doppelte Flussbezeichnungen entfernen
+	# ab Python 2.4: flux = set(flux);
+	flux.sort()
+	flux.reverse()
+	if len(flux):
+		uflux = []
+		uflux.append(flux.pop(0))
+		for F in flux:
+			if uflux[0] != F: uflux.insert(0,F)
+		flux = uflux
+
+	FORMULA_n = []
+	FORMULA_x = []
+
+	for F in flux:
+		if (F in FCD_n) and FCD_n[F]=='C':
+			FORMULA_n.append('%s=%s' % (F,VALUE_n[F]))
+		if (F in FCD_x) and FCD_x[F]=='C':
+			FORMULA_x.append('%s=%s' % (F,VALUE_x[F]))
+
+	# auf Wunsch die Werte der freien Fluesse (F) als Constraints (C)
+	# ins FluxML aufnehmen:
+	if fFreeFluxConst:
+		for F in flux:
+			if (F in FCD_n) and FCD_n[F]=='F':
+				FORMULA_n.append('%s=%s' % (F,VALUE_n[F]))
+			if (F in FCD_x) and FCD_x[F]=='F':
+				FORMULA_x.append('%s=%s' % (F,VALUE_x[F]))
+	
+	return (FORMULA_n,CMT_n,FORMULA_x,CMT_x,\
+		FCD_n,LOW_F_n,INC_F_n,UP_F_n,VALUE_n,\
+		FCD_x,LOW_F_x,INC_F_x,UP_F_x,VALUE_x)
+
+def parsePOOLSIZES(ftbl,doc,fluxml):
+	global fUnMappedComments
+	assert getNextLine(ftbl) == 'POOLSIZES'
+	assert getNextLine(ftbl).startswith('\tMETA_NAME')
+	poolsize = {}
+	line = getNextLine(ftbl)
+	while line.startswith('\t'):
+		assert line.startswith('\t')
+		pspec = line.split('\t'); del pspec[0]
+		pool = pspec.pop(0).strip()
+		assert len(pspec)==1
+		size = pspec.pop(0).strip()
+		poolsize[pool] = size
+		line = getNextLine(ftbl)
+	# TODO: Kommentare direkt unter fluxml einhaengen
+	if commentPending():
+		if fUnMappedComments:
+			fluxml.appendChild(createCommentNode(doc))
+		else:
+			flushComments()
+	return poolsize
+
+def parsePOOLSIZE_MEASUREMENTS(ftbl,doc,fluxml):
+	global fUnMappedComments
+	assert getNextLine(ftbl) == 'POOLSIZE_MEASUREMENTS'
+	assert getNextLine(ftbl).startswith('\tMETA_NAME')
+	line = getNextLine(ftbl)
+	while len(line):
+		line = getNextLine(ftbl)
+	# TODO: Kommentare direkt unter fluxml einhaengen
+	if commentPending():
+		if fUnMappedComments:
+			fluxml.appendChild(createCommentNode(doc))
+		else:
+			flushComments()
+
+def parseEQUALITIES(ftbl,doc,fluxml):
+	assert getNextLine(ftbl) == 'EQUALITIES'
+	assert getNextLine(ftbl) == '\tNET'
+	assert getNextLine(ftbl).startswith('\t\tVALUE')
+	CMT = False
+	if commentPending():
+		CMT = createCommentNode(doc)
+	CMT_n = {}
+	CMT_x = {}
+	VALUE_n = []
+	VALUE_x = []
+	FORMULA_n = []
+	FORMULA_x = []
+
+	run = 0
+	line = getNextLine(ftbl)
+	while line.startswith('\t\t'):
+		EQ = line.split('\t'); del EQ[0]; del EQ[0]
+		VALUE_n.append(EQ.pop(0))
+		FORMULA_n.append(EQ.pop(0))
+		if commentPending():
+			CMT_n[run] = createCommentNode(doc)
+		run = run+1
+		line = getNextLine(ftbl)
+
+	assert line == '\tXCH'
+	assert getNextLine(ftbl).startswith('\t\tVALUE')
+
+	run = 0
+	line = getNextLine(ftbl)
+	while line.startswith('\t\t'):
+		EQ = line.split('\t'); del EQ[0]; del EQ[0]
+		VALUE_x.append(EQ.pop(0))
+		FORMULA_x.append(EQ.pop(0))
+		if commentPending():
+			CMT_x[run] = createCommentNode(doc)
+		run = run+1
+		line = getNextLine(ftbl)
+
+	net_eq = []
+	xch_eq = []
+	while len(VALUE_n):
+		net_eq.append('%s=%s' % (FORMULA_n.pop(0),VALUE_n.pop(0)))
+	while len(VALUE_x):
+		xch_eq.append('%s=%s' % (FORMULA_x.pop(0),VALUE_x.pop(0)))
+	return (net_eq,CMT_n,xch_eq,CMT_x,CMT)
+
+def parseINEQUALITIES(ftbl,doc,fluxml):
+	assert getNextLine(ftbl) == 'INEQUALITIES'
+	assert getNextLine(ftbl) == '\tNET'
+	assert getNextLine(ftbl).startswith('\t\tVALUE')
+	CMT = False
+	if commentPending():
+		CMT = createCommentNode(doc)
+	CMT_n = {}
+	CMT_x = {}
+	VALUE_n = []
+	VALUE_x = []
+	COMP_n = []
+	COMP_x = []
+	FORMULA_n = []
+	FORMULA_x = []
+
+	run = 0
+	line = getNextLine(ftbl)
+	while line.startswith('\t\t'):
+		EQ = line.split('\t'); del EQ[0]; del EQ[0]
+		VALUE_n.append(EQ.pop(0))
+		COMP_n.append(EQ.pop(0))
+		FORMULA_n.append(EQ.pop(0))
+		if commentPending():
+			CMT_n[run] = createCommentNode(doc)
+		run = run+1
+		line = getNextLine(ftbl)
+
+	assert line == '\tXCH'
+	assert getNextLine(ftbl).startswith('\t\tVALUE')
+
+	run = 0
+	line = getNextLine(ftbl)
+	while line.startswith('\t\t'):
+		EQ = line.split('\t'); del EQ[0]; del EQ[0]
+		VALUE_x.append(EQ.pop(0))
+		COMP_x.append(EQ.pop(0))
+		FORMULA_x.append(EQ.pop(0))
+		if commentPending():
+			CMT_x[run] = createCommentNode(doc)
+		run = run+1
+		line = getNextLine(ftbl)
+	
+	net_ineq = []
+	xch_ineq = []
+
+	while len(VALUE_n):
+		net_ineq.append('%s %s %s' % (VALUE_n.pop(0),COMP_n.pop(0),
+				FORMULA_n.pop(0)))
+	while len(VALUE_x):
+		xch_ineq.append('%s %s %s' % (VALUE_x.pop(0),COMP_x.pop(0),
+				FORMULA_x.pop(0)))
+	return (net_ineq,CMT_n,xch_ineq,CMT_x,CMT)
+
+def parseFLUX_MEASUREMENTS(ftbl,doc,fluxml):
+	global fUnMappedComments
+	assert getNextLine(ftbl) == 'FLUX_MEASUREMENTS'
+	assert getNextLine(ftbl).startswith('\tFLUX_NAME')
+
+	fluxmeasurement = None
+	datum_elems = []
+	fm_pfx = 'fm_'
+	fm_cnt = 1
+
+	line = getNextLine(ftbl)
+	while line.startswith('\t'):
+		if not fluxmeasurement:
+			fluxmeasurement = doc.createElement('fluxmeasurement')
+
+		FM = line.split('\t'); del FM[0]
+		netflux = doc.createElement('netflux')
+		textual = doc.createElement('textual')
+		fmid = '%s%i' % (fm_pfx,fm_cnt); fm_cnt = fm_cnt + 1
+		netflux.setAttribute('id', fmid)
+		netflux.appendChild(textual)
+		textual.appendChild(doc.createTextNode(FM[0]))
+		fluxmeasurement.appendChild(netflux)
+		datum = doc.createElement('datum')
+		datum.setAttribute('id', fmid)
+		datum.setAttribute('stddev',FM[2])
+		datum.appendChild(doc.createTextNode(FM[1]))
+		datum_elems.append(datum)
+		if commentPending():
+			datum_elems.append(createCommentNode(doc))
+		line = getNextLine(ftbl)
+
+	return (fluxmeasurement,datum_elems)
+
+def parseLABEL_INPUT(ftbl,doc,fluxml):
+	assert getNextLine(ftbl) == 'LABEL_INPUT'
+	assert getNextLine(ftbl).startswith('\tMETA_NAME')
+	INPUT = {}
+	CMT_M = {}
+	CMT = False
+	if commentPending():
+		CMT = createCommentNode(doc)
+	line = getNextLine(ftbl)
+	while line.startswith('\t'):
+		I = line.split('\t'); del I[0]
+		M = I[0]
+		INPUT[M] = {}
+		CMT_M[M] = {}
+		INPUT[M][I[1]] = I[2]
+		if commentPending():
+			CMT_M[M][I[1]] = createCommentNode(doc)
+		line = getNextLine(ftbl)
+		while line.startswith('\t\t'):
+			I = line.split('\t')
+			INPUT[M][I[2]] = I[3]
+			if commentPending():
+				CMT_M[M][I[2]] = createCommentNode(doc)
+			line = getNextLine(ftbl)
+	
+	cfg = doc.createElement('configuration')
+	cfg.setAttribute('name','default')
+	if CMT != False:
+		cfg.appendChild(CMT)
+	for M in INPUT:
+		input = doc.createElement('input')
+		input.setAttribute('pool',M)
+		input.setAttribute('type','isotopomer')
+		for I in INPUT[M]:
+			iso = I.lstrip('#')
+			label = doc.createElement('label')
+			label.setAttribute('cfg',iso)
+			label.appendChild(doc.createTextNode(INPUT[M][I]))
+			if I in CMT_M[M]:
+				input.appendChild(CMT_M[M][I])
+			input.appendChild(label)
+		cfg.appendChild(input)
+	return cfg
+
+def parseLABEL_MEASUREMENTS(ftbl,doc,model,labelingmeasurement,data):
+	global fUnMappedComments
+	assert getNextLine(ftbl) == 'LABEL_MEASUREMENTS'
+	assert getNextLine(ftbl).startswith('\tMETA_NAME')
+	
+	# Anzahl uebertragener Markierungsmessungen
+	added = 0
+	nonstationaryFTBL = False
+	# default-timestamp fuer instationaer:
+	nonstationaryTS = '999'
+	if model.parentNode.parentNode.getAttribute('stationary') == 'false':
+		nonstationaryFTBL = True
+	# Präfix für erzeugte Gruppen-IDs (Suffix ist '_%04i')
+	cum_group_pfx = 'lmcg_'
+	reMS = re.compile(r'([A-Za-z_]([A-Za-z_]|\d)*)(\[((\d+|\d+-\d+)(,(\d+|\d+-\d+))*)\])?#M(\d+(,\d+)*)')
+	
+	gengroups = {}
+	gengroupcount = 1
+	
+	line = getNextLine(ftbl)
+	while line.startswith('\t'):
+		LMSPEC = line.split('\t'); del LMSPEC[0]
+
+		LMmetab = str(LMSPEC[0])
+		LMgroupid = cum_group_pfx + str(LMSPEC[1]).strip() + ('_%05i' % gengroupcount)
+		gengroupcount = gengroupcount + 1
+		LMvalue = str(LMSPEC[2])
+		LMstddev = str(LMSPEC[3])
+		LMconstr = filterMeasurementSpec(str(LMSPEC[4]),LMmetab)
+
+		# Spezifikation
+		if not LMgroupid in gengroups: gengroups[LMgroupid] = []
+		gengroups[LMgroupid].append(LMconstr)
+		# datum-Element
+		datum = doc.createElement('datum')
+		datum.setAttribute('id', LMgroupid)
+		datum.setAttribute('stddev', LMstddev)
+		match = reMS.match(LMconstr)
+		if match:
+			m = match.groups()
+			datum.setAttribute('weight', m[7])
+		else:
+			datum.setAttribute('row', str(len(gengroups[LMgroupid])))
+
+		if nonstationaryFTBL:
+			datum.setAttribute('time', nonstationaryTS)
+		datum.appendChild(doc.createTextNode(LMvalue))
+		if commentPending():
+			data.appendChild(createCommentNode(doc))
+		data.appendChild(datum)
+
+		line = getNextLine(ftbl)
+		while line.startswith('\t\t'):
+			LMSPEC = line.split('\t'); del LMSPEC[0]; del LMSPEC[0]
+			if len(LMSPEC[0])>0:
+				# Normalerweise würde gemäß FTBL-Spezifikation die
+				# CUM_GROUP die Gruppenzugehörigkeit eindeutig festlegen.
+				# In der Praxis hat der ursprüngliche FTBL-Parser jedoch
+				# einen Bug: Immer, wenn das Feld CUM_GROUP nicht leer
+				# ist, wird eine neue Gruppe geöffnet. Weiterhin können
+				# Gruppen-IDs beliebig oft dupliziert werden. Auch, wenn
+				# hier die neue Gruppen-ID der alten entspricht, wird
+				# eine neue Messgruppe angelegt
+				LMgroupid = cum_group_pfx + str(LMSPEC[0]).strip() + \
+					('_%05i' % gengroupcount)
+				gengroupcount = gengroupcount + 1
+			LMvalue = str(LMSPEC[1])
+			LMstddev = str(LMSPEC[2])
+			LMconstr = filterMeasurementSpec(str(LMSPEC[3]),LMmetab)
+	
+			# Spezifikation
+			if not LMgroupid in gengroups: gengroups[LMgroupid] = []
+			gengroups[LMgroupid].append(LMconstr)
+			# datum-Element
+			datum = doc.createElement('datum')
+			datum.setAttribute('id', LMgroupid)
+			datum.setAttribute('stddev', LMstddev)
+			match = reMS.match(LMconstr)
+			if match:
+				m = match.groups()
+				datum.setAttribute('weight', m[7])
+			else:
+				datum.setAttribute('row', str(len(gengroups[LMgroupid])))
+
+			if nonstationaryFTBL:
+				datum.setAttribute('time', nonstationaryTS)
+			datum.appendChild(doc.createTextNode(LMvalue))
+			if commentPending():
+				data.appendChild(createCommentNode(doc))
+			data.appendChild(datum)
+			line = getNextLine(ftbl)
+
+	# Spezifikation anlegen:
+	gids = list(gengroups.keys())
+	gids.sort()
+	for gid in gids:
+		if len(gengroups[gid]) >= 256:
+			flux.warning('probably too much rows (%i) in measurement group %s' % (len(gengroups[gid]),gid))
+
+		group = doc.createElement('group')
+		group.setAttribute('id',gid)
+		group.setAttribute('scale','auto')
+		textual = doc.createElement('textual') # TODO: MathML
+		textual.appendChild(doc.createTextNode('; '.join(gengroups[gid])))
+		if nonstationaryFTBL:
+			# TODO: das Attribut wird nie gesetzt, da MASS_SPECTROMETRY
+			# nach LABEL_MEASUREMENTS folgt und LABEL_MEASUREMENTS nie
+			# instationaere Messungen enthaelt:
+			group.setAttribute('times', nonstationaryTS)
+		group.appendChild(textual)
+		labelingmeasurement.appendChild(group)
+		added = added + 1
+	return added
+
+# filtert aus generischen Spezifikationen (FTBL) die de-facto-MS-Messungen
+# heraus und erzeugt eine MS-Spezifikation (FluxML)
+def filterMeasurementSpec(spec,metab):
+	global fTranslateToMS
+	filterRE = re.compile('#[x01]+(\+#[x01]+)*')
+	orig_spec = spec
+	if not fTranslateToMS or not filterRE.match(spec):
+		return spec.replace('#','%s#' % metab)
+	spec = spec.replace('#','').split('+')
+
+	xmask = [s=='x' for s in spec[0]]
+	n_ones = spec[0].count('1')
+	maskset = {}
+	for i in spec:
+		s_xmask = [s=='x' for s in i]
+		# nur ein Fragment ...
+		if xmask != s_xmask or n_ones != i.count('1'):
+			return orig_spec.replace('#','%s#' % metab)
+		maskset[i] = True
+	
+	# keine volle MS messung?
+	if len(maskset) != flux.bin_coeff(xmask.count(False),n_ones):
+		return orig_spec.replace('#','%s#' % metab)
+
+	if xmask.count(False) == len(xmask):
+		return '%s#M%i' % (metab,n_ones)
+
+	rangemask = [ not s for s in xmask ];
+	return '%s[%s]#M%i' % (metab,flux.mask_to_range(rangemask),n_ones)
+
+def parsePEAK_MEASUREMENTS(ftbl,doc,model,labelingmeasurement,data):
+	assert getNextLine(ftbl) == 'PEAK_MEASUREMENTS'
+	line = getNextLine(ftbl)
+	while len(line):
+		line = getNextLine(ftbl)
+	# TODO: Kommentare direkt unter labelingmeasurement einhaengen
+	if commentPending():
+		if fUnMappedComments:
+			labelingmeasurement.appendChild(createCommentNode(doc))
+		else:
+			flushComments()
+	return 0
+
+def parseMASS_SPECTROMETRY(ftbl,doc,model,labelingmeasurement,data):
+	global fUnMappedComments
+	assert getNextLine(ftbl) == 'MASS_SPECTROMETRY'
+
+	added = 0
+	line = getNextLine(ftbl)
+
+	# stationaer / instationaer entscheidet sich an den MS-Messungen
+	stationaryFTBL = None
+	if line.startswith('\tSAMPLE_TIME'):
+		stationaryFTBL = False
+		model.parentNode.parentNode.setAttribute('stationary','false')
+	elif line.startswith('\tMETA_NAME'):
+		stationaryFTBL = True
+		model.parentNode.parentNode.setAttribute('stationary','true')
+	else:
+	 	assert False
+
+	msgroups = {}
+	ms_group_cnt = 1
+		
+	MStime = -1
+	line = getNextLine(ftbl)
+	while line.startswith('\t'):
+		MSSPEC = line.split('\t'); del MSSPEC[0]
+		if not stationaryFTBL:
+			if len(MSSPEC[0])>0: MStime = MSSPEC[0]
+			del MSSPEC[0]
+
+		MSmetab = MSSPEC[0]
+		MSfrag = str(MSSPEC[1]).replace('~','-')
+		MSweight = str(MSSPEC[2])
+		MSvalue = str(MSSPEC[3])
+		MSstddev = str(MSSPEC[4])
+		ms_times = {}
+
+		ms_group_id = 'ms_group_%i' % ms_group_cnt
+		ms_group_cnt = ms_group_cnt + 1
+		ms_spec_str = '%s[%s]#M%s' % (MSmetab,MSfrag,MSweight)
+		datum = doc.createElement('datum')
+		datum.setAttribute('id', ms_group_id)
+		datum.setAttribute('stddev', MSstddev)
+		datum.setAttribute('weight', MSweight)
+		if not stationaryFTBL:
+			ms_times[MStime] = True
+			datum.setAttribute('time', MStime)
+		datum.appendChild(doc.createTextNode(MSvalue))
+		if commentPending():
+			data.appendChild(createCommentNode(doc))
+		data.appendChild(datum)
+
+		line = getNextLine(ftbl)
+		while stationaryFTBL and line.startswith('\t\t\t') or line.startswith('\t\t\t\t'):
+			MSSPEC = line.split('\t')
+			del MSSPEC[0]; del MSSPEC[0]; del MSSPEC[0]
+			if not stationaryFTBL: del MSSPEC[0]
+			
+			MSweight = str(MSSPEC[0])
+			MSvalue = str(MSSPEC[1])
+			MSstddev = str(MSSPEC[2])
+			
+			ms_spec_str = ms_spec_str + (',%s' % MSweight)
+			datum = doc.createElement('datum')
+			datum.setAttribute('id', ms_group_id)
+			datum.setAttribute('stddev', MSstddev)
+			datum.setAttribute('weight', MSweight)
+			if not stationaryFTBL:
+				ms_times[MStime] = True
+				datum.setAttribute('time', MStime)
+			datum.appendChild(doc.createTextNode(MSvalue))
+			if commentPending():
+				data.appendChild(createCommentNode(doc))
+			data.appendChild(datum)
+			line = getNextLine(ftbl)
+
+		# Spezifikation anlegen
+		group = doc.createElement('group')
+		group.setAttribute('id', ms_group_id)
+		group.setAttribute('scale','auto')
+		if not stationaryFTBL:
+			ms_times = list(ms_times.keys())
+			ms_times.sort()
+			group.setAttribute('times',','.join(ms_times))
+		textual = doc.createElement('textual')
+		textual.appendChild(doc.createTextNode(ms_spec_str))
+		group.appendChild(textual)
+		labelingmeasurement.appendChild(group)
+		added = added + 1
+	return added
+
+def parseOPTIONS(ftbl,doc,fluxml):
+	assert getNextLine(ftbl) == 'OPTIONS'
+	line = getNextLine(ftbl)
+	while len(line):
+		line = getNextLine(ftbl)
+	# TODO: Kommentare direkt unter fluxml einhaengen
+	if commentPending():
+		if fUnMappedComments:
+			fluxml.appendChild(createCommentNode(doc))
+		else:
+			flushComments()
+
+def parseFTBL(doc,infile):
+	# Kommentare drinlassen, Leerzeilen entfernen, rechts Trimmen
+	ftbl = [ x.rstrip() for x in infile.readlines() ]
+	while '' in ftbl: ftbl.remove('')
+
+	# Zeilen als UTF-8 codieren. unicode(...) macht aus dem String ein UTF-String!:
+	ftbl = [ unicode(x.decode("iso-8859-1").encode("utf-8"),"utf-8") for x in ftbl ]
+
+	# ftbl in Bloecke zerlegen
+	ftbl_blk = {}
+	block = []
+	for line in ftbl:
+		if not (line.startswith('\t') or line.startswith('//')) and len(block)>0:
+			#print 'Block: [%s]' % block[0]
+			ftbl_blk[block[0]] = block; del block; block = []
+			block.append(line)
+		else:
+			block.append(line)
+	if len(block)>0:
+		ftbl_blk[block[0]] = block
+
+	# XML vorbereiten
+	fluxml = doc.documentElement
+
+	if 'PROJECT' in ftbl_blk:
+		parsePROJECT(ftbl_blk['PROJECT'],doc,fluxml) # optional
+		del ftbl_blk['PROJECT']
+
+	assert 'NETWORK' in ftbl_blk
+	parseNETWORK(ftbl_blk['NETWORK'],doc,fluxml) # must
+	del ftbl_blk['NETWORK']
+
+	(feq_n,cmtf_n,feq_x,cmtf_x,\
+	fcd_n,lo_n,inc_n,hi_n,val_n,\
+	fcd_x,lo_x,inc_x,hi_x,val_x) = parseFLUXES(ftbl_blk['FLUXES'],doc,fluxml) # must
+	del ftbl_blk['FLUXES']
+
+	if 'POOLSIZES' in ftbl_blk:
+		poolsizes = parsePOOLSIZES(ftbl_blk['POOLSIZES'],doc,fluxml) # optional
+		poollist = fluxml.getElementsByTagName('pool')
+		for pool in poollist:
+			name = pool.getAttribute('id')
+			if name in poolsizes:
+				pool.setAttribute('size',poolsizes[name])
+		del ftbl_blk['POOLSIZES']
+	
+	(eq_n,eq_n_cmt,eq_x,eq_x_cmt,eq_cmt) = parseEQUALITIES(ftbl_blk['EQUALITIES'],doc,fluxml) # must
+	del ftbl_blk['EQUALITIES']
+	(ineq_n,ineq_n_cmt,ineq_x,ineq_x_cmt,ineq_cmt) = parseINEQUALITIES(ftbl_blk['INEQUALITIES'],doc,fluxml) # must
+	del ftbl_blk['INEQUALITIES']
+	eq_n.extend(ineq_n)
+	eq_x.extend(ineq_x)
+
+	# Constraints der Fluesse dazunehmen
+	eq_n.extend(feq_n)
+	eq_x.extend(feq_x)
+	# Kommentare der Fluesse dazunehmen (TODO: feinere Verarbeitung)
+	# oha ... dictionaries mischen
+	eq_n_cmt.update(cmtf_n)
+	eq_x_cmt.update(cmtf_x)
+
+	# allgemeine Kommentare zu Gleichungen / Ungleichungen werden einfach
+	# so in den Baum gehaengt (wohin damit?)
+	if eq_cmt != False:
+		fluxml.appendChild(eq_cmt)
+	if ineq_cmt != False:
+		fluxml.appendChild(ineq_cmt)
+
+	# es gibt ein globales Element mit Constraints und ein weiteres
+	# constraints-Element in der Konfiguration "default", in dem Fluesse
+	# eingestellt werden ...
+	if len(eq_n)>0 or len(eq_x)>0:
+		constraints = doc.createElement('constraints')
+		fluxml.appendChild(constraints)
+
+		if len(eq_n)>0:
+			net = doc.createElement('net')
+			constraints.appendChild(net)
+
+			# TODO: feinere Verarbeitung der Kommentare: eq_n_cmt, ineq_n_cmt
+			for k in eq_n_cmt:
+				net.appendChild(eq_n_cmt[k])
+			for k in ineq_n_cmt:
+				net.appendChild(ineq_n_cmt[k])
+		
+			if fMathMLConstraints:
+				# MathML in net serialisieren
+				p = Popen([ prg_expr2mml ], shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+				(fromchild,tochild) = (p.stdout,p.stdin)
+				for eq in eq_n:
+					tochild.write('%s\n' % eq)
+				tochild.close()
+				eq_mml = fromchild.read()
+				fromchild.close()
+				eq_dom = parseString(eq_mml)
+				net.appendChild(eq_dom.documentElement)
+			else:
+				textual = doc.createElement('textual')
+				net.appendChild(textual)
+				textual.appendChild(doc.createTextNode('; '.join(eq_n)))
+		
+		if len(eq_x)>0:
+			xch = doc.createElement('xch')
+			constraints.appendChild(xch)
+			
+			# TODO: feinere Verarbeitung der Kommentare: eq_x_cmt, ineq_x_cmt
+			for k in eq_x_cmt:
+				xch.appendChild(eq_x_cmt[k])
+			for k in ineq_x_cmt:
+				xch.appendChild(ineq_x_cmt[k])
+			
+			if fMathMLConstraints:
+				# MathML in xch serialisieren
+				p = Popen([ prg_expr2mml ], shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+				(fromchild,tochild) = (p.stdout,p.stdin)
+				for eq in eq_x:
+					tochild.write('%s\n' % eq)
+				tochild.close()
+				eq_mml = fromchild.read()
+				fromchild.close()
+				eq_dom = parseString(eq_mml)
+				xch.appendChild(eq_dom.documentElement)
+			else:
+				textual = doc.createElement('textual')
+				xch.appendChild(textual)
+				textual.appendChild(doc.createTextNode('; '.join(eq_x)))
+
+	(fluxmeasurement,fdatum_elems) = parseFLUX_MEASUREMENTS(
+			ftbl_blk['FLUX_MEASUREMENTS'],doc,fluxml) # must
+	del ftbl_blk['FLUX_MEASUREMENTS']
+	configuration = parseLABEL_INPUT(ftbl_blk['LABEL_INPUT'],doc,fluxml) # must
+	del ftbl_blk['LABEL_INPUT']
+	fluxml.appendChild(configuration)
+
+	# LOW(F) und UP(F) in constraints der Konfiguration verwandeln
+	# TODO: das evtl. ueber Kommandozeile kontrollierbar machen
+	if len(lo_n)>0 or len(hi_n)>0 or len(lo_x)>0 or len(hi_x)>0:
+		constraints = doc.createElement('constraints')
+		configuration.appendChild(constraints)
+		if len(lo_n)>0 or len(hi_n)>0:
+			net = doc.createElement('net')
+			constraints.appendChild(net)
+			
+			if fMathMLConstraints:
+				# MathML in net serialisieren
+				p = Popen([ prg_expr2mml ], shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+				(fromchild,tochild) = (p.stdout,p.stdin)
+				for lo in lo_n:
+					tochild.write('%s >= %s\n' % (lo,lo_n[lo]))
+				for hi in hi_n:
+					tochild.write('%s <= %s\n' % (hi,hi_n[hi]))
+				tochild.close()
+				eq_mml = fromchild.read()
+				fromchild.close()
+				eq_dom = parseString(eq_mml)
+				net.appendChild(eq_dom.documentElement)
+			else:
+				textual = doc.createElement('textual')
+				net.appendChild(textual)
+				bnds = []
+				for lo in lo_n:
+					bnds.append('%s >= %s' % (lo,lo_n[lo]))
+				for hi in hi_n:
+					bnds.append('%s <= %s' % (hi,hi_n[hi]))
+				textual.appendChild(doc.createTextNode('; '.join(bnds)))
+
+		if len(lo_x)>0 or len(hi_x)>0:
+			xch = doc.createElement('xch')
+			constraints.appendChild(xch)
+			
+			if fMathMLConstraints:
+				# MathML in net serialisieren
+				p = Popen([ prg_expr2mml ], shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+				(fromchild,tochild) = (p.stdout,p.stdin)
+				for lo in lo_x:
+					tochild.write('%s >= %s\n' % (lo,lo_x[lo]))
+				for hi in hi_x:
+					tochild.write('%s <= %s\n' % (hi,hi_x[hi]))
+				tochild.close()
+				eq_mml = fromchild.read()
+				fromchild.close()
+				eq_dom = parseString(eq_mml)
+				xch.appendChild(eq_dom.documentElement)
+			else:
+				textual = doc.createElement('textual')
+				xch.appendChild(textual)
+				bnds = []
+				for lo in lo_x:
+					bnds.append('%s >= %s' % (lo,lo_x[lo]))
+				for hi in hi_x:
+					bnds.append('%s <= %s' % (hi,hi_x[hi]))
+				textual.appendChild(doc.createTextNode('; '.join(bnds)))
+	
+	# Messmodell
+	measurement = doc.createElement('measurement')
+	configuration.appendChild(measurement)
+	model = doc.createElement('model')
+	# vorerst:
+	configuration.setAttribute('stationary','true')
+	measurement.appendChild(model)
+	labelingmeasurement = doc.createElement('labelingmeasurement')
+	data = doc.createElement('data')
+	measurement.appendChild(data)
+	model.appendChild(labelingmeasurement)
+	if fluxmeasurement:
+		model.appendChild(fluxmeasurement)
+		for elem in fdatum_elems:
+			data.appendChild(elem)
+	
+	# Derzeit nicht abgebildet (instationaer):
+	#poolmeasurement = doc.createElement('poolmeasurement')
+
+	if not fFreeFluxConst:
+		# Spezifikation der freien Fluesse in configuration einbasteln
+		simulation = doc.createElement('simulation')
+		configuration.appendChild(simulation)
+		simulation.setAttribute('type','auto')
+		simulation.setAttribute('method','auto')
+		variables = doc.createElement('variables')
+		simulation.appendChild(variables)
+		for F in fcd_n:
+			if fcd_n[F] != 'F': continue
+			fluxvalue = doc.createElement('fluxvalue')
+			variables.appendChild(fluxvalue)
+			fluxvalue.setAttribute('type','net')
+			fluxvalue.setAttribute('flux',F)
+			if F in val_n:
+				fluxvalue.appendChild(doc.createTextNode(val_n[F]))
+			if F in lo_n:
+				fluxvalue.setAttribute('lo',lo_n[F])
+			if F in inc_n:
+				fluxvalue.setAttribute('inc',inc_n[F])
+			if F in hi_n:
+				fluxvalue.setAttribute('hi',hi_n[F])
+	
+		for F in fcd_x:
+			if fcd_x[F] != 'F': continue
+			fluxvalue = doc.createElement('fluxvalue')
+			variables.appendChild(fluxvalue)
+			fluxvalue.setAttribute('type','xch')
+			fluxvalue.setAttribute('flux',F)
+			if F in val_x:
+				fluxvalue.appendChild(doc.createTextNode(val_x[F]))
+			if F in lo_x:
+				fluxvalue.setAttribute('lo',lo_x[F])
+			if F in inc_x:
+				fluxvalue.setAttribute('inc',inc_x[F])
+			if F in hi_x:
+				fluxvalue.setAttribute('hi',hi_x[F])
+
+	nmeas = parseLABEL_MEASUREMENTS(ftbl_blk['LABEL_MEASUREMENTS'],doc,
+		model,labelingmeasurement,data) # must
+	del ftbl_blk['LABEL_MEASUREMENTS']
+
+	nmeas = nmeas + parsePEAK_MEASUREMENTS(ftbl_blk['PEAK_MEASUREMENTS'],doc,
+		model,labelingmeasurement,data) # must
+	del ftbl_blk['PEAK_MEASUREMENTS']
+
+	nmeas = nmeas + parseMASS_SPECTROMETRY(ftbl_blk['MASS_SPECTROMETRY'],doc,
+		model,labelingmeasurement,data) # must
+	del ftbl_blk['MASS_SPECTROMETRY']
+
+	# gemaess Grammatik darf kein leeres labelingmeasurement Element auftauchen
+	if nmeas == 0:
+		model.removeChild(labelingmeasurement)
+		del labelingmeasurement
+
+	parseOPTIONS(ftbl_blk['OPTIONS'],doc,fluxml) # must
+	del ftbl_blk['OPTIONS']
+
+	if 'POOLSIZE_MEASUREMENTS' in ftbl_blk:
+		parsePOOLSIZE_MEASUREMENTS(ftbl_blk['POOLSIZE_MEASUREMENTS'],doc,fluxml) # optional
+		del ftbl_blk['POOLSIZE_MEASUREMENTS']
+
+	# es duerfen keine weiteren Bloecke vorhanden sein:
+	#assert len(ftbl_blk) == 0
+
+	# zum Schluss eine modeline fuer vim anhaengen:
+	if fPretty:
+		doc.appendChild(doc.createComment(
+				' vim:set shiftwidth=2 expandtab: '))
+
+def usage(all=True):
+	if all:
+		print('FTBL2FML -- FTBL to FluxML converter (c) 2009 Michael Weitzel')
+		print('SYNTAX: ftbl2fml [-cdefFklmnrtvxyz] [-i infile] [-o outfile]')
+	print('''Options are:
+  -i|--in <ftbl>    name of the input FTBL (ftbl) file (stdin if omitted)
+  -o|--out <fml>    name of the output FluxML (fml) file (stdout if omitted)
+  -c|--comments     try preserving comments
+  -d|--unmapped     preserve comments of unmapped sections (requires -c)
+  -e|--effluxes     preserve artificial sink pools by appending extra effluxes
+  -f|--fprefix      prefix for extra effluxes (-e); default: 'efflux_'
+  -F|--freeconst    translate values of free (F) fluxes into constraints
+  -k|--noautoms     do not perform automatic translation into MS specifications
+  -l|--listsinks    list names of all (removed) sink pools in a XML comment
+  -m|--mathml       serialize constraint equations using MathML
+  -n|--nonpretty    omit pretty-printing of the generated FluxML
+  -r|--remsinks     remove only selected sink pools, e.g. '-r \".*_ex\"'
+  -t|--tsfromfile   use timestamp from input file in FluxML info header
+  -v|--valid        create XML which can be validated
+  -y|--pypretty     when pretty printing, enforce the use of Python/minidom
+                    (otherwise, filter through 'xmllint --format')
+  -z|--gzip         compress output file using GZIP compression
+N.B.: option -r is intended for expert use only and requires manual editing
+      of the resulting reaction network.''')
+
+#
+# Hauptprogramm
+#
+def main():
+	global fComments, fCompressGZIP, fExtraEffluxes, fExtraEffluxPrefix
+	global fFreeFluxConst, fListSinks, fMathMLConstraints, fOutputs
+	global fPretty, fRemoveSinks, fRemoveSinksRE, fTimestamp
+	global fUnMappedComments, fUseInputFileTS, fForcePythonPrettyPrint
+	global fUseValidation, fTranslateToMS
+	global prg_expr2mml, prg_xmllint
+
+	# Verfuegbarkeit von externen Programmen pruefen
+	prg_expr2mml = flux.which(prg_expr2mml)
+	prg_xmllint = flux.which(prg_xmllint)
+
+	opt_infile = None
+	opt_outfile = None
+
+	# Optionen als String aufzeichnen
+	opt_list = []
+
+	try:
+		opts, args = getopt.getopt(sys.argv[1:],"i:o:cdef:Fhklmnr:tvyz",[
+			'in=','out=','comments','unmapped','effluxes',
+			'fprefix=','help','noautoms','listsinks','mathml',
+			'nonpretty','remsinks','tsfromfile','valid','pypretty',
+			'gzip'])
+	except getopt.GetoptError, E:
+		(msg,opt) = E
+		flux.error('parsing command line (option "%s") failed: %s\n' % (opt,msg))
+		usage(False)
+		sys.exit(2)
+
+	for o, a in opts:
+		if o in ('-i','--in'):
+			opt_infile = a
+			opt_list.append('-i %s' % a)
+		elif o in ('-o','--out'):
+			opt_outfile = a
+			opt_list.append('-o %s' % a)
+		elif o in ('-c','--comments'):
+			fComments = True
+			opt_list.append('-c')
+		elif o in ('-d','--unmapped'):
+			fUnMappedComments = True
+			opt_list.append('-d')
+		elif o in ('-e','--effluxes'):
+			fExtraEffluxes = True
+			opt_list.append('-e')
+		elif o in ('-f','--fprefix'):
+			fExtraEffluxPrefix = a
+			opt_list.append('-f')
+		elif o in ('-F','--freeconst'):
+			fFreeFluxConst = True
+			opt_list.append('-F')
+		elif o in ('-k','--noautoms'):
+			fTranslateToMS = False
+			opt_list.append('-k')
+		elif o in ('-l','--listsinks'):
+			fListSinks = True
+			opt_list.append('-l')
+		elif o in ('-m','--mathml'):
+			fMathMLConstraints = True
+			opt_list.append('-m')
+		elif o in ('-n','--nonpretty'):
+			fPretty = False
+			opt_list.append('-n')
+		elif o in ('-r','--remsinks'):
+			fRemoveSinks = True
+			if len(a):
+				fRemoveSinksRE = a
+			else:
+			 	fRemoveSinksRE = '.*'
+			opt_list.append('-r "%s"' % fRemoveSinksRE)
+		elif o in ('-t','--tsfromfile'):
+			fUseInputFileTS = True
+			opt_list.append('-t')
+		elif o in ('-v','--valid'):
+			fUseValidation = True
+			opt_list.append('-v')
+		elif o in ('-y','--pypretty'):
+			fForcePythonPrettyPrint = True
+			opt_list.append('-y')
+		elif o in ('-z','--gzip'):
+			fCompressGZIP = True
+			opt_list.append('-z')
+		else:
+			usage()
+			sys.exit(0)
+
+	if len(args) > 0:
+		flux.error('invalid extra parameters')
+		usage()
+		sys.exit(2)
+
+	if opt_infile != None and opt_outfile != None and opt_infile == opt_outfile:
+		flux.error('refusing to overwrite input file ("%s" for -i, -o)'
+			% opt_infile)
+		sys.exit(1)
+	
+	if not fComments and fUnMappedComments:
+		flux.error('-d requires -c to ensure you know what you are doing')
+		sys.exit(1)
+
+	if fExtraEffluxes and fRemoveSinks:
+		flux.error('the removal of sinks contradicts the addition of extra effluxes')
+		sys.exit(1)
+
+	if fRemoveSinks:
+		try:
+			fRemoveSinksRE = re.compile(fRemoveSinksRE)
+		except:
+			flux.error('malformed regular expression')
+			sys.exit(4)
+
+	if fMathMLConstraints and not prg_expr2mml:
+		flux.error('expr2mml not found (hint: try without -m)')
+		sys.exit(3)
+
+	infile = sys.stdin
+	outfile = sys.stdout
+	if opt_infile:	
+		if fUseInputFileTS:
+			fTimestamp = os.stat(args[0])[ST_MTIME]
+		infile = open(opt_infile,'r')
+	
+	# XML/FluxML-Dokument initialisieren
+	impl = getDOMImplementation()
+	fmldoc = impl.createDocument(None, 'fluxml', None)
+	fmldoc.documentElement.setAttribute('xmlns', fXSD_xmlns)
+	if fUseValidation:
+		fmldoc.documentElement.setAttribute('xmlns:xsi',
+				fXSD_xmlns_xsi)
+		fmldoc.documentElement.setAttribute('xsi:schemaLocation',
+				fXSD_xsi_schemaLocation)
+	
+	# FTBL-Datei in den DOM-Tree parsen
+	parseFTBL(fmldoc,infile)
+
+	# Aufruf-Flags in einem Kommentar aufzeichnen
+	opt_list.sort()
+	user = ''
+	if 'USER' in os.environ:
+		user = 'by user %s ' % os.environ['USER']
+	fluxml = fmldoc.documentElement
+	flags_comment = ''
+	if len(opt_list):
+		flags_comment = 'The following flags were used for conversion: {%s}.\n' % (', '.join(opt_list))
+
+	fluxml.insertBefore(
+		fmldoc.createComment(
+			' FTBL2FML:\nThis network specification has been converted from a FTBL file\n'
+			+ '%sat %s.\n%s'
+			% (user,strftime('%Y-%m-%d %H:%M:%S',gmtime()),flags_comment)),
+		fluxml.firstChild)
+
+	if opt_outfile:
+		if fCompressGZIP:
+			if not opt_outfile.endswith('.gz'):
+				flux.warning('(compressed) output file does not end with ".gz"')
+			outfile = gzip.open(opt_outfile,'w')
+		else:
+			outfile = open(opt_outfile,'w')
+	else:
+		if fCompressGZIP:
+			flux.warning('refusing to write compressed FluxML to stdout')
+
+	if fPretty:
+		#xml.dom.ext.PrettyPrint(fmldoc,outfile,"UTF-8")
+		if fForcePythonPrettyPrint or not prg_xmllint:
+			# fallback verwenden; die erzeugten XML-Dateien sind
+			# allerdings ziemlich uebel: TEXT-Elemente werden mit
+			# zusaetzlichen Zeilenumbruechen und whitespace
+			# verseucht
+			if not fForcePythonPrettyPrint and len(args)>1:
+				flux.warning('falling back to Python/minidom for XML pretty printing')
+			outfile.write(fmldoc.toprettyxml('  ',encoding='utf-8'))
+		else:
+			# xmllint produziert wesentlich bessere Ergebnisse
+			p = Popen([ prg_xmllint + ' --format -' ], shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+			(fromchild,tochild) = (p.stdout,p.stdin)
+			
+			tochild.write(fmldoc.toxml(encoding='utf-8'))
+			tochild.flush()
+			tochild.close()
+			outfile.write(fromchild.read())
+	else:
+		#xml.dom.ext.Print(fmldoc,outfile,"UTF-8")
+		outfile.write(fmldoc.toxml(encoding='utf-8'))
+
+if __name__ == "__main__":
+	try:
+		main()
+	except AssertionError:
+		flux.error('malformed FTBL input, parsing failed - a traceback can be found below')
+		traceback.print_exc()
+		sys.exit(1)
+

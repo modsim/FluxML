@@ -1,0 +1,144 @@
+<?xml version="1.0"?>
+<fluxml xmlns="http://www.uni-siegen.de/fb11/simtec/13cflux/fluxml">
+  <info>
+    <name>Antoniewicz test network</name>
+    <version>1.0</version>
+    <date>2007-10-09 00:00:00</date>
+    <comment>Network from the EMU paper</comment>
+  </info>
+
+  <reactionnetwork type="isotopomer">
+    <metabolitepools>
+      <pool id="A" atoms="3"/>
+      <pool id="B" atoms="3"/>
+      <pool id="C" atoms="2"/>
+      <pool id="D" atoms="3"/>
+      <pool id="E" atoms="1"/>
+      <pool id="F" atoms="3"/>
+      <!-- <pool id="X" atoms="4"/> -->
+    </metabolitepools>
+
+    <reaction id="v1">
+      <reduct id="A" cfg="abc"/>
+      <rproduct id="B" cfg="abc"/>
+    </reaction>
+
+    <reaction id="v2v3">
+      <reduct id="B" cfg="abc"/>
+      <rproduct id="D" cfg="abc"/>
+    </reaction>
+
+    <reaction id="v4">
+      <reduct id="B" cfg="abc"/>
+      <rproduct id="C" cfg="bc"/>
+      <rproduct id="E" cfg="a"/>
+    </reaction>
+
+    <!-- -->
+    <reaction id="v5" bidirectional="false">
+      <reduct id="B" cfg="abc"/>
+      <reduct id="C" cfg="de"/>
+      <rproduct id="D" cfg="bcd"/>
+      <rproduct id="E" cfg="a"/>
+      <rproduct id="E" cfg="e"/>
+    </reaction>
+    <!-- -->
+
+    <!--
+    <reaction id="v5_1">
+      <reduct id="B" cfg="abc"/>
+      <reduct id="C" cfg="de"/>
+      <rproduct id="X" cfg="bcda"/>
+      <rproduct id="E" cfg="e"/>
+    </reaction>
+    <reaction id="v5_2">
+      <reduct id="X" cfg="bcda"/>
+      <rproduct id="D" cfg="bcd"/>
+      <rproduct id="E" cfg="a"/>
+    </reaction>
+    -->
+    <reaction id="v6" bidirectional="false">
+      <reduct id="D" cfg="abc"/>
+      <rproduct id="F" cfg="abc"/>
+    </reaction>
+
+    <reaction id="efflux_E">
+      <reduct id="E" cfg="a"/>
+    </reaction>
+
+    <reaction id="efflux_F">
+      <reduct id="F" cfg="abc"/>
+    </reaction>
+
+  </reactionnetwork>
+  <configuration name="default">
+    <comment>Eine Belegung für die Input-Pools</comment>
+    <input pool="A" type="isotopomer">
+      <!-- <label cfg="010">1</label> -->
+      <label cfg="111">.5</label>
+      <label cfg="110">.25</label>
+      <label cfg="011">.25</label>
+    </input>
+
+    <constraints>
+      <netto>
+        <textual><!-- v1=100; v4=20 --><!-- v2v3=60; v3=50; v4=20; v5=20; v6=80--></textual>
+      </netto>
+      <exchange>
+        <textual>v5=0; v6=0; v4=0</textual>
+      </exchange>
+    </constraints>
+
+    <measurement>
+      <model stationary="true">
+        <labelingmeasurement>
+	  <!-- <NMR13Cgroup id="m1" spec="F#DD2"/> -->
+	  <MSgroup id="m1" spec="F#M2,3" scale="one"/>
+	  <MSgroup id="m2" spec="C#M0,1,2" scale="one"/>
+	  
+	  <!--
+	  <MSgroup id="m3" spec="B#M0" scale="one"/>
+	  <MSgroup id="m4" spec="D#M0" scale="one"/>
+	  <MSgroup id="m5" spec="E#M0" scale="one"/>
+	  -->
+	  <MSgroup id="mA" spec="A#M0,1,2,3" scale="one"/>
+	</labelingmeasurement>
+      </model>
+      <data>
+        <!-- <datum id="m1" stddev="1" pos="2" type="DD">1.23</datum> -->
+	<datum id="m1" stddev="1" weight="2">1</datum>
+	<datum id="m1" stddev="1" weight="3">1</datum>
+	<datum id="m2" stddev="1" weight="0">1</datum>
+	<datum id="m2" stddev="1" weight="1">1</datum>
+	<datum id="m2" stddev="1" weight="2">1</datum>
+	
+	<!--
+	<datum id="m3" stddev="1" weight="0">1</datum>
+	<datum id="m4" stddev="1" weight="0">1</datum>
+	<datum id="m5" stddev="1" weight="0">1</datum>
+	-->
+	<datum id="mA" stddev="1" weight="0">1</datum>
+	<datum id="mA" stddev="1" weight="1">1</datum>
+	<datum id="mA" stddev="1" weight="2">1</datum>
+	<datum id="mA" stddev="1" weight="3">1</datum>
+      </data>
+    </measurement>
+    
+    <!-- <simulation type="full" method="cumomer"> -->
+    <!-- <simulation type="auto" method="cumomer"> -->
+    <!-- <simulation type="full" method="emu"> -->
+    <simulation type="auto" method="emu">
+    <!-- <simulation type="explicit" method="emu">
+      <objects>
+        <obj pool="F" range="2"/>
+      </objects> -->
+      <variables>
+        <fluxvalue flux="v1" type="net">100</fluxvalue>
+        <fluxvalue flux="v4" type="net">20</fluxvalue>
+        <fluxvalue flux="v2v3" type="xch">50</fluxvalue>
+      </variables>
+    </simulation>
+
+  </configuration>
+</fluxml>
+<!-- vim:set shiftwidth=2:set expandtab: -->

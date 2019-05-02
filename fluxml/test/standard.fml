@@ -1,0 +1,723 @@
+<?xml version="1.0"?>
+<!DOCTYPE fluxml SYSTEM "fluxml.dtd">
+<fluxml>
+  <info>
+    <name>Escherichia Coli Netzwerk</name>
+    <version>1.3</version>
+    <date>2007-04-09 00:00:00</date>
+    <comment>Abgeleitet aus ppp_tca.xml; Biosynthese-Reaktionen aus coryne.xml
+    </comment>
+  </info>
+  <reactionnetwork type="isotopomer">
+    <metabolitepools>
+      <pool id="AcCoA" atoms="2"/>
+      <pool id="Ace" atoms="2"/>
+      <pool id="AcN" atoms="6"/>
+      <pool id="AHB" atoms="6"/>
+      <pool id="AKB" atoms="4"/>
+      <pool id="AKG" atoms="5"/>
+      <pool id="AKV" atoms="5"/>
+      <pool id="Ala" atoms="3"/>
+      <pool id="Arg" atoms="6"/>
+      <pool id="Asa" atoms="4"/>
+      <pool id="Asp" atoms="4"/>
+      <pool id="BAP" atoms="4"/>
+      <pool id="Chor" atoms="10"/>
+      <pool id="Cit" atoms="6"/>
+      <pool id="CO2" atoms="1"/>
+      <pool id="Cys" atoms="3"/>
+      <pool id="D23PG6" atoms="6"/>
+      <pool id="DAHP" atoms="7"/>
+      <pool id="DGL6P" atoms="6"/>
+      <pool id="DHAP" atoms="3"/>
+      <pool id="DHMV" atoms="6"/>
+      <pool id="DNA" atoms="5"/>
+      <pool id="Ery4P" atoms="4"/>
+      <pool id="Fru6P" atoms="6"/>
+      <pool id="FruBP" atoms="6"/>
+      <pool id="FTHF" atoms="1"/>
+      <pool id="Fum" atoms="4"/>
+      <pool id="GA3P" atoms="3"/>
+      <pool id="Glc1_in" atoms="6"/>
+      <pool id="Glc2_in" atoms="6"/>
+      <pool id="Glc3_in" atoms="6"/>
+      <pool id="Glc6P" atoms="6"/>
+      <pool id="GlcNAc" atoms="8"/>
+      <pool id="Gln" atoms="5"/>
+      <pool id="Glu" atoms="5"/>
+      <pool id="Glut" atoms="5"/>
+      <pool id="Gly" atoms="2"/>
+      <pool id="GlyOx" atoms="2"/>
+      <pool id="His" atoms="6"/>
+      <pool id="Hom" atoms="4"/>
+      <pool id="ICit" atoms="6"/>
+      <pool id="Ile" atoms="6"/>
+      <pool id="Leu" atoms="6"/>
+      <pool id="LLDAP" atoms="7"/>
+      <pool id="Lys" atoms="6"/>
+      <pool id="m13PGA" atoms="3"/>
+      <pool id="m2PGA" atoms="3"/>
+      <pool id="m3PGA" atoms="3"/>
+      <pool id="Mal" atoms="4"/>
+      <pool id="mDAP" atoms="7"/>
+      <pool id="Met" atoms="5"/>
+      <pool id="NSDAKP" atoms="7"/>
+      <pool id="OAA" atoms="4"/>
+      <pool id="P5Pxch" atoms="5"/>
+      <pool id="PEP" atoms="3"/>
+      <pool id="PG6" atoms="6"/>
+      <pool id="Phe" atoms="9"/>
+      <pool id="Pro" atoms="5"/>
+      <pool id="Pyr" atoms="3"/>
+      <pool id="PyrCO2" atoms="4"/>
+      <pool id="PyrP" atoms="2"/>
+      <pool id="Rib5P" atoms="5"/>
+      <pool id="Rul5P" atoms="5"/>
+      <pool id="SDAP" atoms="7"/>
+      <pool id="Sed7P" atoms="7"/>
+      <pool id="Ser" atoms="3"/>
+      <pool id="Succ" atoms="4"/>
+      <pool id="SucCoA" atoms="4"/>
+      <pool id="THDP" atoms="7"/>
+      <pool id="Thr" atoms="4"/>
+      <pool id="Tre" atoms="6"/>
+      <pool id="Trp" atoms="11"/>
+      <pool id="Tyr" atoms="9"/>
+      <pool id="Val" atoms="5"/>
+      <pool id="Xyl5P" atoms="5"/>
+    </metabolitepools>
+<!-- Mixture Input -->
+    <reaction id="i_Glc1">
+      <reduct id="Glc1_in" cfg="ABCDEF"/>
+      <rproduct id="Glc6P" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="i_Glc2">
+      <reduct id="Glc2_in" cfg="ABCDEF"/>
+      <rproduct id="Glc6P" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="i_Glc3">
+      <reduct id="Glc3_in" cfg="ABCDEF"/>
+      <rproduct id="Glc6P" cfg="ABCDEF"/>
+    </reaction>
+<!-- Embden Meyerhof Parnas Pathway -->
+    <reaction id="emp1">
+      <reduct id="Glc6P" cfg="ABCDEF"/>
+      <rproduct id="Fru6P" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="emp2">
+      <reduct id="Fru6P" cfg="ABCDEF"/>
+      <rproduct id="FruBP" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="emp3">
+      <reduct id="FruBP" cfg="ABCDEF"/>
+      <rproduct id="DHAP" cfg="CBA"/>
+      <rproduct id="GA3P" cfg="DEF"/>
+    </reaction>
+    <reaction id="emp4">
+      <reduct id="DHAP" cfg="ABC"/>
+      <rproduct id="GA3P" cfg="ABC"/>
+    </reaction>
+    <reaction id="emp5">
+      <reduct id="GA3P" cfg="ABC"/>
+      <rproduct id="m13PGA" cfg="ABC"/>
+    </reaction>
+    <reaction id="emp6">
+      <reduct id="m13PGA" cfg="ABC"/>
+      <rproduct id="m3PGA" cfg="ABC"/>
+    </reaction>
+    <reaction id="emp7">
+      <reduct id="m3PGA" cfg="ABC"/>
+      <rproduct id="m2PGA" cfg="ABC"/>
+    </reaction>
+    <reaction id="emp8">
+      <reduct id="m2PGA" cfg="ABC"/>
+      <rproduct id="PEP" cfg="ABC"/>
+    </reaction>
+    <reaction id="emp9">
+      <reduct id="PEP" cfg="ABC"/>
+      <rproduct id="Pyr" cfg="ABC"/>
+    </reaction>
+<!-- Entner-Doudoroff-Pathway -->
+    <reaction id="edp1">
+      <reduct id="Glc6P" cfg="ABCDEF"/>
+      <rproduct id="DGL6P" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="edp2">
+      <reduct id="DGL6P" cfg="ABCDEF"/>
+      <rproduct id="PG6" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="edp3">
+      <reduct id="PG6" cfg="ABCDEF"/>
+      <rproduct id="D23PG6" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="edp4">
+      <reduct id="D23PG6" cfg="ABCDEF"/>
+      <rproduct id="GA3P" cfg="ABC"/>
+      <rproduct id="Pyr" cfg="DEF"/>
+    </reaction>
+<!-- Pentose Phosphate Pathway -->
+    <reaction id="ppp1">
+      <reduct id="PG6" cfg="ABCDEF"/>
+      <rproduct id="CO2" cfg="A"/>
+      <rproduct id="Rul5P" cfg="BCDEF"/>
+    </reaction>
+    <reaction id="ppp2">
+      <reduct id="Rul5P" cfg="ABCDE"/>
+      <rproduct id="Xyl5P" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="ppp3">
+      <reduct id="Rul5P" cfg="ABCDE"/>
+      <rproduct id="Rib5P" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="ppp4">
+      <reduct id="Xyl5P" cfg="ABCDE"/>
+      <reduct id="Ery4P" cfg="abcd"/>
+      <rproduct id="GA3P" cfg="CDE"/>
+      <rproduct id="Fru6P" cfg="ABabcd"/>
+    </reaction>
+    <reaction id="ppp5">
+      <reduct id="Xyl5P" cfg="ABCDE"/>
+      <reduct id="Rib5P" cfg="abcde"/>
+      <rproduct id="Sed7P" cfg="ABabcde"/>
+      <rproduct id="GA3P" cfg="CDE"/>
+    </reaction>
+    <reaction id="ppp6">
+      <reduct id="GA3P" cfg="ABC"/>
+      <reduct id="Sed7P" cfg="abcdefg"/>
+      <rproduct id="Ery4P" cfg="defg"/>
+      <rproduct id="Fru6P" cfg="abcABC"/>
+    </reaction>
+    <reaction id="ppp_P5P">
+      <reduct id="Rul5P" cfg="ABCDE"/>
+      <rproduct id="P5Pxch" cfg="ABCDE"/>
+    </reaction>
+<!-- Tricarboxylic Acid Cycle -->
+    <reaction id="tcc1">
+      <reduct id="Pyr" cfg="ABC"/>
+      <rproduct id="AcCoA" cfg="BC"/>
+      <rproduct id="CO2" cfg="A"/>
+    </reaction>
+    <reaction id="tcc2">
+      <reduct id="OAA" cfg="ABCD"/>
+      <reduct id="AcCoA" cfg="ab"/>
+      <rproduct id="Cit" cfg="abBCDA"/>
+    </reaction>
+    <reaction id="tcc3">
+      <reduct id="Cit" cfg="ABCDEF"/>
+      <rproduct id="AcN" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="tcc4">
+      <reduct id="AcN" cfg="ABCDEF"/>
+      <rproduct id="ICit" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="tcc5">
+      <reduct id="ICit" cfg="ABCDEF"/>
+      <rproduct id="AKG" cfg="ABCDE"/>
+      <rproduct id="CO2" cfg="F"/>
+    </reaction>
+    <reaction id="tcc6">
+      <reduct id="AKG" cfg="ABCDE"/>
+      <rproduct id="SucCoA" cfg="BCDE"/>
+      <rproduct id="CO2" cfg="A"/>
+    </reaction>
+    <reaction id="tcc7a">
+      <reduct id="SucCoA" cfg="ABCD"/>
+      <rproduct id="Succ" cfg="ABCD"/>
+    </reaction>
+    <reaction id="tcc7b">
+      <reduct id="SucCoA" cfg="ABCD"/>
+      <rproduct id="Succ" cfg="DCBA"/>
+    </reaction>
+    <reaction id="tcc8a">
+      <reduct id="Succ" cfg="ABCD"/>
+      <rproduct id="Fum" cfg="ABCD"/>
+    </reaction>
+    <reaction id="tcc8b">
+      <reduct id="Succ" cfg="ABCD"/>
+      <rproduct id="Fum" cfg="DCBA"/>
+    </reaction>
+    <reaction id="tcc9a">
+      <reduct id="Fum" cfg="ABCD"/>
+      <rproduct id="Mal" cfg="ABCD"/>
+    </reaction>
+    <reaction id="tcc9b">
+      <reduct id="Fum" cfg="ABCD"/>
+      <rproduct id="Mal" cfg="DCBA"/>
+    </reaction>
+    <reaction id="tcc10">
+      <reduct id="Mal" cfg="ABCD"/>
+      <rproduct id="OAA" cfg="ABCD"/>
+    </reaction>
+<!-- Glyoxylate Shunt -->
+    <reaction id="gs1">
+      <reduct id="ICit" cfg="ABCDEF"/>
+      <rproduct id="GlyOx" cfg="AB"/>
+      <rproduct id="Succ" cfg="CDEF"/>
+    </reaction>
+    <reaction id="gs2">
+      <reduct id="GlyOx" cfg="AB"/>
+      <reduct id="AcCoA" cfg="ab"/>
+      <rproduct id="Mal" cfg="ABba"/>
+    </reaction>
+<!-- Anaplerotic Reactions (extended version) -->
+    <reaction id="ana1">
+      <reduct id="Pyr" cfg="ABC"/>
+      <reduct id="CO2" cfg="a"/>
+      <rproduct id="OAA" cfg="ABCa"/>
+    </reaction>
+    <reaction id="ana2">
+      <reduct id="OAA" cfg="ABCD"/>
+      <rproduct id="CO2" cfg="D"/>
+      <rproduct id="PEP" cfg="ABC"/>
+    </reaction>
+    <reaction id="ana3">
+      <reduct id="Mal" cfg="ABCD"/>
+      <rproduct id="Pyr" cfg="ABC"/>
+      <rproduct id="CO2" cfg="D"/>
+    </reaction>
+<!-- Transaminase Reaction -->
+<!-- bs_akg -->
+    <reaction id="gdh">
+      <reduct id="AKG" cfg="ABCDE"/>
+      <rproduct id="Glut" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="asp">
+      <reduct id="OAA" cfg="ABCD"/>
+      <reduct id="Glut" cfg="abcde"/>
+      <rproduct id="Asp" cfg="ABCD"/>
+      <rproduct id="AKG" cfg="abcde"/>
+    </reaction>
+<!-- Lysine Pathway -->
+    <reaction id="lys1">
+      <reduct id="Asp" cfg="ABCD"/>
+      <rproduct id="BAP" cfg="ABCD"/>
+    </reaction>
+    <reaction id="lys2">
+      <reduct id="BAP" cfg="ABCD"/>
+      <rproduct id="Asa" cfg="ABCD"/>
+    </reaction>
+    <reaction id="lys3">
+      <reduct id="Asa" cfg="ABCD"/>
+      <rproduct id="Hom" cfg="ABCD"/>
+    </reaction>
+    <reaction id="lys4">
+      <reduct id="Hom" cfg="ABCD"/>
+      <rproduct id="Thr" cfg="ABCD"/>
+    </reaction>
+    <reaction id="lys5">
+      <reduct id="Thr" cfg="ABCD"/>
+      <rproduct id="AKB" cfg="ABCD"/>
+    </reaction>
+    <reaction id="lys6">
+      <reduct id="Pyr" cfg="ABC"/>
+      <rproduct id="PyrP" cfg="AB"/>
+      <rproduct id="CO2" cfg="C"/>
+    </reaction>
+    <reaction id="lys7">
+      <reduct id="AKB" cfg="ABCD"/>
+      <reduct id="PyrP" cfg="ab"/>
+      <rproduct id="AHB" cfg="ABCDab"/>
+    </reaction>
+    <reaction id="lys8">
+      <reduct id="AHB" cfg="ABCDEF"/>
+      <rproduct id="DHMV" cfg="ABFCDE"/>
+    </reaction>
+    <reaction id="lys9">
+      <reduct id="DHMV" cfg="ABCDEF"/>
+      <reduct id="Glut" cfg="abcde"/>
+      <rproduct id="Ile" cfg="ABCDEF"/>
+      <rproduct id="AKG" cfg="abcde"/>
+    </reaction>
+    <reaction id="lys10">
+      <reduct id="Asa" cfg="ABCD"/>
+      <reduct id="Pyr" cfg="abc"/>
+      <rproduct id="DAHP" cfg="abcDCBA"/>
+    </reaction>
+    <reaction id="lys10a">
+      <reduct id="DAHP" cfg="ABCDEFG"/>
+      <rproduct id="THDP" cfg="ABCDEFG"/>
+    </reaction>
+    <reaction id="lys11">
+      <reduct id="THDP" cfg="ABCDEFG"/>
+      <rproduct id="NSDAKP" cfg="ABCDEFG"/>
+    </reaction>
+    <reaction id="lys12">
+      <reduct id="NSDAKP" cfg="ABCDEFG"/>
+      <reduct id="Glut" cfg="abcde"/>
+      <rproduct id="SDAP" cfg="ABCDEFG"/>
+      <rproduct id="AKG" cfg="abcde"/>
+    </reaction>
+    <reaction id="lys13a">
+      <reduct id="SDAP" cfg="ABCDEFG"/>
+      <rproduct id="LLDAP" cfg="ABCDEFG"/>
+    </reaction>
+    <reaction id="lys13b">
+      <reduct id="SDAP" cfg="ABCDEFG"/>
+      <rproduct id="LLDAP" cfg="GFEDCBA"/>
+    </reaction>
+    <reaction id="lys14">
+      <reduct id="LLDAP" cfg="ABCDEFG"/>
+      <rproduct id="mDAP" cfg="GFEDCBA"/>
+    </reaction>
+    <reaction id="lys15">
+      <reduct id="THDP" cfg="ABCDEFG"/>
+      <rproduct id="mDAP" cfg="ABCDEFG"/>
+    </reaction>
+    <reaction id="lys16">
+      <reduct id="mDAP" cfg="ABCDEFG"/>
+      <rproduct id="Lys" cfg="ABCDEF"/>
+      <rproduct id="CO2" cfg="G"/>
+    </reaction>
+<!-- Fluxes into Biomass -->
+    <reaction id="o_Glc6P">
+      <reduct id="Glc6P" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="o_Fru6P">
+      <reduct id="Fru6P" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="o_Rib5P">
+      <reduct id="Rib5P" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="o_P5P">
+      <reduct id="P5Pxch" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="o_Ery4P">
+      <reduct id="Ery4P" cfg="ABCD"/>
+    </reaction>
+    <reaction id="o_Glyc">
+      <reduct id="DHAP" cfg="ABC"/>
+    </reaction>
+    <reaction id="o_PEP">
+      <reduct id="PEP" cfg="ABC"/>
+    </reaction>
+    <reaction id="o_Pyr">
+      <reduct id="Pyr" cfg="ABC"/>
+    </reaction>
+    <reaction id="o_AcCoA">
+      <reduct id="AcCoA" cfg="AB"/>
+    </reaction>
+    <reaction id="o_OAA">
+      <reduct id="OAA" cfg="ABCD"/>
+    </reaction>
+    <reaction id="o_Glut">
+      <reduct id="Glut" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="o_AKG">
+      <reduct id="AKG" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="o_Hom">
+      <reduct id="Hom" cfg="ABCD"/>
+    </reaction>
+    <reaction id="o_Thr">
+      <reduct id="Thr" cfg="ABCD"/>
+    </reaction>
+    <reaction id="o_Ile">
+      <reduct id="Ile" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="o_Asp">
+      <reduct id="Asp" cfg="ABCD"/>
+    </reaction>
+    <reaction id="o_Lys">
+      <reduct id="Lys" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="o_CO2">
+      <reduct id="CO2" cfg="A"/>
+    </reaction>
+    <reaction id="o_ace">
+      <reduct id="AcCoA" cfg="AB"/>
+      <rproduct id="Ace" cfg="AB"/>
+    </reaction>
+    <reaction id="o_o_ace">
+      <reduct id="Ace" cfg="AB"/>
+    </reaction>
+<!-- Biosynthese-Pathways -->
+<!-- Glucose-6-Phosphate Family -->
+    <reaction id="bs_glc6P">
+      <reduct id="Glc6P" cfg="ABCDEF"/>
+      <rproduct id="Tre" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="o_tre">
+      <reduct id="Tre" cfg="ABCDEF"/>
+    </reaction>
+<!-- Fructose-6-Phosphate Family -->
+    <reaction id="bs_fru6P">
+      <reduct id="Fru6P" cfg="ABCDEF"/>
+      <reduct id="AcCoA" cfg="ab"/>
+      <rproduct id="GlcNAc" cfg="ABCDEFab"/>
+    </reaction>
+    <reaction id="o_bs_fru6P">
+      <reduct id="GlcNAc" cfg="ABCDEFGH"/>
+    </reaction>
+<!-- Phosphoglycerate Family -->
+    <reaction id="bs_pga1">
+      <reduct id="m3PGA" cfg="ABC"/>
+      <rproduct id="Ser" cfg="ABC"/>
+    </reaction>
+    <reaction id="bs_pga2">
+      <reduct id="Ser" cfg="ABC"/>
+      <rproduct id="Cys" cfg="ABC"/>
+    </reaction>
+    <reaction id="o_cys">
+      <reduct id="Cys" cfg="ABC"/>
+    </reaction>
+    <reaction id="bs_pga3">
+      <reduct id="Ser" cfg="ABC"/>
+      <rproduct id="Gly" cfg="AB"/>
+      <rproduct id="FTHF" cfg="C"/>
+    </reaction>
+    <reaction id="o_bs_pga3">
+      <reduct id="Gly" cfg="AB"/>
+    </reaction>
+<!-- Pyruvate Family -->
+    <reaction id="bs_pyr1">
+      <reduct id="Pyr" cfg="ABC"/>
+      <rproduct id="Ala" cfg="ABC"/>
+    </reaction>
+    <reaction id="o_ala">
+      <reduct id="Ala" cfg="ABC"/>
+    </reaction>
+    <reaction id="bs_pyr2">
+      <reduct id="Pyr" cfg="ABC"/>
+      <reduct id="Pyr" cfg="abc"/>
+      <rproduct id="Val" cfg="ABbcC"/>
+      <rproduct id="CO2" cfg="a"/>
+    </reaction>
+    <reaction id="o_bs_pyr2">
+      <reduct id="Val" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="bs_pyr3">
+      <reduct id="Pyr" cfg="ABC"/>
+      <reduct id="Pyr" cfg="abc"/>
+      <rproduct id="AKV" cfg="ABbcC"/>
+      <rproduct id="CO2" cfg="a"/>
+    </reaction>
+    <reaction id="bs_pyr4">
+      <reduct id="AKV" cfg="ABCDE"/>
+      <reduct id="AcCoA" cfg="ab"/>
+      <rproduct id="Leu" cfg="abBCDE"/>
+      <rproduct id="CO2" cfg="A"/>
+    </reaction>
+    <reaction id="o_bs_pyr4">
+      <reduct id="Leu" cfg="ABCDEF"/>
+    </reaction>
+<!-- Ribose-5-Phosphate Family -->
+    <reaction id="bs_rib5p1">
+      <reduct id="Rib5P" cfg="ABCDE"/>
+      <reduct id="FTHF" cfg="a"/>
+      <rproduct id="His" cfg="EDCBAa"/>
+    </reaction>
+    <reaction id="o_bs_rib5p1">
+      <reduct id="His" cfg="ABCDEF"/>
+    </reaction>
+    <reaction id="bs_rib5p2">
+      <reduct id="Rib5P" cfg="ABCDE"/>
+      <rproduct id="DNA" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="o_dna">
+      <reduct id="DNA" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="bs_rib5p3">
+      <reduct id="Rib5P" cfg="ABCDE"/>
+      <rproduct id="P5Pxch" cfg="ABCDE"/>
+    </reaction>
+<!-- Aromatic Amino Acids -->
+    <reaction id="bs_pep1">
+      <reduct id="PEP" cfg="ABC"/>
+      <reduct id="Ery4P" cfg="abcd"/>
+      <rproduct id="DAHP" cfg="ABCabcd"/>
+    </reaction>
+    <reaction id="bs_pep2">
+      <reduct id="PEP" cfg="ABC"/>
+      <reduct id="DAHP" cfg="abcdefg"/>
+      <rproduct id="Chor" cfg="ABCabcdefg"/>
+    </reaction>
+    <reaction id="bs_pep3a">
+      <reduct id="Chor" cfg="ABCDEFGHIJ"/>
+      <rproduct id="Phe" cfg="ABCEFGHIJ"/>
+      <rproduct id="CO2" cfg="D"/>
+    </reaction>
+    <reaction id="bs_pep3b">
+      <reduct id="Chor" cfg="ABCDEFGHIJ"/>
+      <rproduct id="Phe" cfg="ABCEJIHGF"/>
+      <rproduct id="CO2" cfg="D"/>
+    </reaction>
+    <reaction id="o_bs_pep3">
+      <reduct id="Phe" cfg="ABCEFGHIJ"/>
+    </reaction>
+    <reaction id="bs_pep4a">
+      <reduct id="Chor" cfg="ABCDEFGHIJ"/>
+      <rproduct id="Tyr" cfg="ABCEFGHIJ"/>
+      <rproduct id="CO2" cfg="D"/>
+    </reaction>
+    <reaction id="bs_pep4b">
+      <reduct id="Chor" cfg="ABCDEFGHIJ"/>
+      <rproduct id="Tyr" cfg="ABCEJIHGF"/>
+      <rproduct id="CO2" cfg="D"/>
+    </reaction>
+    <reaction id="o_bs_pep4">
+      <reduct id="Tyr" cfg="ABCEFGHIJ"/>
+    </reaction>
+    <reaction id="bs_pep5">
+      <reduct id="Chor" cfg="ABCDEFGHIJ"/>
+      <reduct id="Rib5P" cfg="abcde"/>
+      <rproduct id="Trp" cfg="edcbaJEFGHI"/>
+      <rproduct id="PyrCO2" cfg="ABCD"/>
+    </reaction>
+    <reaction id="o_bs_pep5">
+      <reduct id="Trp" cfg="ABCDEFGHIJK"/>
+    </reaction>
+    <reaction id="bs_pep6">
+      <reduct id="PyrCO2" cfg="ABCD"/>
+      <rproduct id="Pyr" cfg="ABC"/>
+      <rproduct id="CO2" cfg="D"/>
+    </reaction>
+<!-- Alpha-Ketoglutarate Family -->
+    <reaction id="bs_akg1">
+      <reduct id="AKG" cfg="ABCDE"/>
+      <rproduct id="Glu" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="bs_akg2">
+      <reduct id="Glu" cfg="ABCDE"/>
+      <rproduct id="Pro" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="o_pro">
+      <reduct id="Pro" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="bs_akg3">
+      <reduct id="Glu" cfg="ABCDE"/>
+      <rproduct id="Gln" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="o_gln">
+      <reduct id="Gln" cfg="ABCDE"/>
+    </reaction>
+    <reaction id="bs_akg4">
+      <reduct id="Glu" cfg="ABCDE"/>
+      <reduct id="CO2" cfg="a"/>
+      <rproduct id="Arg" cfg="ABCDEa"/>
+    </reaction>
+    <reaction id="o_bs_akg4">
+      <reduct id="Arg" cfg="ABCDEF"/>
+    </reaction>
+<!-- Oxaloacetate Family -->
+    <reaction id="bs_oaa1">
+      <reduct id="OAA" cfg="ABCD"/>
+      <rproduct id="Asp" cfg="ABCD"/>
+    </reaction>
+    <reaction id="bs_oaa2">
+      <reduct id="OAA" cfg="ABCD"/>
+      <reduct id="FTHF" cfg="a"/>
+      <rproduct id="Met" cfg="ABCDa"/>
+    </reaction>
+    <reaction id="o_bs_oaa2">
+      <reduct id="Met" cfg="ABCDE"/>
+    </reaction>
+  </reactionnetwork>
+  
+  <constraints>
+    <netto>
+      <textual>
+        tcc7a=tcc7b;
+        tcc8a=tcc8b;
+        tcc9a=tcc9b;
+        lys13a=lys13b;
+        
+        0&lt;=ppp1;
+        0&lt;=tcc1;
+        0&lt;=tcc3;
+        0&lt;=tcc4;
+        0&lt;=tcc5;
+        0&lt;=tcc6;
+        0&lt;=tcc7a;
+        0&lt;=tcc8a;
+        0&lt;=tcc9a;
+        0&lt;=tcc10;
+        0&lt;=ana2;
+      </textual>
+    </netto>
+    <exchange>
+      <textual>tcc8a=tcc8b</textual>
+    </exchange>
+  </constraints>
+<!-- Eine konkrete Konfiguration des Netzwerks: -->
+  <configuration name="default">
+    <comment>realistische Reversibilit&#xE4;ten / unrealistische Flu&#xDF;gr&#xF6;&#xDF;en</comment>
+<!-- Konfiguration der Input-Pools: -->
+    <input pool="Glc1_in" type="isotopomer">
+<!-- die Verteilung der einzelnen Isotopomere -->
+      <label cfg="000000">0.934</label>
+      <label cfg="000001">0.011</label>
+      <label cfg="000010">0.011</label>
+      <label cfg="000100">0.011</label>
+      <label cfg="001000">0.011</label>
+      <label cfg="010000">0.011</label>
+      <label cfg="100000">0.011</label>
+    </input>
+    <input pool="Glc2_in" type="isotopomer">
+<!-- die Verteilung der einzelnen Isotopomere -->
+      <label cfg="000000">0.01</label>
+      <label cfg="100000">0.99</label>
+    </input>
+    <input pool="Glc3_in" type="isotopomer">
+<!-- die Verteilung der einzelnen Isotopomere -->
+      <label cfg="111111">0.9429406</label>
+      <label cfg="011111">0.0095099</label>
+      <label cfg="101111">0.0095099</label>
+      <label cfg="110111">0.0095099</label>
+      <label cfg="111011">0.0095099</label>
+      <label cfg="111101">0.0095099</label>
+      <label cfg="111110">0.0095099</label>
+    </input>
+<!-- Substrate-Uptake -->
+<!-- i_Glc1 i_Glc2 i_Glc3 -->
+<!-- Abzug in Output-Pools -->
+<!-- o_Glc6P o_Fru6P o_Glyc o_CO2 o_PEP o_AcCoA o_ace o_Asp o_bs_akg4 o_bs_fru6P o_bs_oaa2 o_bs_pep3 o_bs_pep4 o_bs_pep5 o_bs_pga3 o_bs_pyr2 o_bs_pyr4 o_bs_rib5p1 o_Ery4P o_Glut o_P5P o_Pyr bs_akg2 bs_akg3 bs_glc6P bs_pga2 bs_pyr1 bs_rib5p2 -->
+<!-- irreversibele Reaktionen -->
+<!-- emp2 emp3 emp9 edp2 edp3 ppp1 tcc1 tcc3 tcc4 tcc5 tcc6 tcc7a tcc8a tcc9a gs1 gs2 asp gdh lys1 lys2 lys10 lys11 lys13a lys16 -->
+     <constraints>
+       <netto>
+         <textual>
+           i_Glc1=1.;
+           i_Glc2=1.;
+	   i_Glc3=1.;
+         </textual>
+       </netto>
+       <exchange>
+         <textual>
+           edp1=.27;
+           edp2=.28;
+           edp3=.29;
+           edp4=.30;
+
+           emp1=.37;
+           emp2=.24;
+           emp3=.25;
+           emp4=.38;
+           emp5=.39;
+           emp6=.40;
+           emp7=.41;
+           emp8=.42;
+           emp9=.26;
+
+           ppp1=.31;
+           ppp2=.32;
+           ppp3=.33;
+           ppp4=.34;
+           ppp5=.35;
+
+	   ppp_P5P=.36;
+
+	   gs2 = 0.1;
+	   ana2 = 0.1;
+	   ana3 = 0.1;
+	   lys15 = 0.1;
+	   bs_oaa1=0;
+	   bs_pep6=0;
+	   bs_rib5p3=0;
+	   bs_pep1=0;
+	   bs_pep4b=0;
+	   bs_pep3b=0;
+         </textual>
+       </exchange>
+     </constraints>
+  </configuration>
+</fluxml>

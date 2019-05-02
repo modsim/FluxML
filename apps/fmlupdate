@@ -1,0 +1,347 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+import xml.dom.minidom
+from subprocess import *
+import dateutil
+import getopt
+import sys
+import re
+import StringIO
+import flux
+
+
+if (sys.hexversion>>16) < 0x204:
+	raise 'requiring Python 2.4 or newer'
+
+try:
+	# Python >= 2.5
+	import xml.etree.cElementTree as ET
+except ImportError:
+	try:
+		# Python >= 2.5
+		import xml.etree.ElementTree as ET
+	except ImportError:
+		try:
+			# ElementTree (effbot)
+			import elementtree.ElementTree as ET
+		except ImportError:
+			# ElementTree via libxml2
+			import lxml.etree as ET
+
+# XML-Lint (besseres pretty-printing)
+prg_xmllint = 'xmllint'
+
+def usage():
+	print '''FMLUPDATE -- making a FLuxML document up to date (c) Salah Azzouzi 2018
+SYNTAX: fmlupdate -i <fwd file> -o <fml file>
+  -i,--fluxml <fml file>    input FluxML (fml) file
+  -o,--out <fml file>       name of output FluxML file (stdout if omitted)
+  -l,--level <val>          target FluxML level (1, 2 or 3)
+  -c,--configure <cfg>      FluxML configuration ("default" if omitted)
+  '''
+
+
+def renameElement(doc,element,newname):
+	# flux.notice('renaming element "%s" to "%s" ...' % (element.nodeName,newname))
+	newelem = doc.createElement(newname)
+	for attr in element.attributes.items():
+		newelem.setAttribute(attr[0],attr[1])
+	while element.hasChildNodes():
+		newelem.appendChild(element.firstChild)
+	element.parentNode.replaceChild(newelem,element)
+
+def main():
+        try:
+		opts, args = getopt.getopt(sys.argv[1:],'i:o:l:c:',
+			['fluxml=','out=','level=','configure='])
+	except getopt.GetoptError:
+		usage();
+		sys.exit(1)
+
+	fmlfile = None
+	outfile = sys.stdout
+        fmltargetlevel = 0
+        fmlsourcelevel = 0
+	config = 'default'
+        
+	if len(args) > 0:
+		flux.error('too many arguments')
+		usage()
+		sys.exit(2)
+
+	for o, a in opts:
+		if o in ('-i','--fluxml'):
+			fmlfile = a
+		elif o in ('-o','--out'):
+			outfile = a
+		elif o in ('-l','--level'):
+			fmltargetlevel = int(a)
+		elif o in ('-c','--configure'):
+			config = a
+                else:
+			usage()
+			sys.exit(1)
+
+	if outfile != sys.stdout:
+		if fmlfile != None and outfile == fmlfile:
+			flux.error('refusing to overwrite input FluxML file ("%s" for -f, -o)'
+					% fmlfile)
+			sys.exit(1)
+
+	if fmlfile != None:
+		fmlfile = open(fmlfile,'r')
+	if outfile != sys.stdout:
+		outfile = open(outfile,'w')
+
+	doc = xml.dom.minidom.parse(fmlfile)
+
+	fluxml = doc.documentElement
+
+	if doc.doctype != None:
+		flux.notice('PLEASE REMOVE THE <!DOCTYPE...> MANUALLY!!!')
+
+	if fluxml.getAttribute('xmlns') != flux.fml_ns:
+		flux.notice('updating FluxML namespace ...')
+		fluxml.setAttribute('xmlns',flux.fml_ns)
+
+	datelst = fluxml.getElementsByTagName('date')
+	tsre = re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+	for date in datelst:
+		ts = date.firstChild.nodeValue.strip()
+		if not tsre.match(ts):
+			flux.notice('fixing timestamp "%s" ...' % ts)
+			while date.hasChildNodes():
+				date.removeChild(date.firstChild)
+			date.appendChild(doc.createTextNode('1970-01-01 00:00:00'))
+        
+        formatlst = fluxml.getElementsByTagName('format')
+        for fr in formatlst:
+                fr.parentNode.removeChild(fr)
+
+	rnlst = fluxml.getElementsByTagName('reactionnetwork')
+	for rn in rnlst:
+		flux.notice('removing attribute "type" from reactionnetwork')
+		if rn.hasAttribute('type'):
+			rn.removeAttribute('type')
+
+	edlst = fluxml.getElementsByTagName('educt')
+	if edlst != None:
+		flux.notice('renaming all "educt" -> "reduct"')
+	for ed in edlst:
+		renameElement(doc,ed,'reduct')
+	prodlst = fluxml.getElementsByTagName('product')
+	if prodlst != None:
+		flux.notice('renaming all "product" -> "rproduct"')
+	for prod in prodlst:
+		renameElement(doc,prod,'rproduct')
+
+        # getting stationary attribute
+        stationaryAttr = "true"
+        cfglst = fluxml.getElementsByTagName('configuration')
+        for cfg in cfglst:
+                if cfg.getAttribute('name') == "default":
+                    if cfg.hasAttribute('stationary'):
+                        stationaryAttr= cfg.getAttribute('stationary')   
+
+        # detemination of FluxML level 
+        multipleIsotopeFlag= "false"
+        poollst = fluxml.getElementsByTagName('pool')
+        for p in poollst:
+                if p.hasAttribute('cfg'):
+                        poolCfg= p.getAttribute('cfg')
+                        if 'C' in poolCfg and ('N' in poolCfg or 'H' in poolCfg):
+                                multipleIsotopeFlag = "true"
+
+        if multipleIsotopeFlag == "true":
+                fmlsourcelevel = 3
+        elif  stationaryAttr == "true":       
+                fmlsourcelevel = 1
+        else:
+                fmlsourcelevel = 2
+
+	# Umbau der Constraints ... kompliziert
+	conslst = fluxml.getElementsByTagName('constraints')
+	if conslst != None:
+		flux.notice('updating constraints ...')
+		constraintsNode = doc.createElement('constraints')
+		netNode = doc.createElement('net')
+		xchNode = doc.createElement('xch')
+		psizeNode = doc.createElement('psize')
+	
+                # Ursprügliches Format
+		conslst = fluxml.getElementsByTagName('constraints')
+		for cons in conslst:
+			if cons.getAttribute('type') == 'netto':
+                                while cons.hasChildNodes():
+					netNode.appendChild(cons.firstChild)
+			elif cons.getAttribute('type') == 'exchange':
+				while cons.hasChildNodes():
+					xchNode.appendChild(cons.firstChild)
+			elif cons.getAttribute('type') == 'poolsize':
+				while cons.hasChildNodes():
+					psizeNode.appendChild(cons.firstChild)
+                        else:
+				continue # anderes format
+			cons.parentNode.removeChild(cons)
+		
+                # halb-neues Format ...
+		conslst = fluxml.getElementsByTagName('constraints')
+		for cons in conslst:
+			nettolst = cons.getElementsByTagName('netto')
+			for netto in nettolst:
+				while netto.hasChildNodes():
+                                       netNode.appendChild(netto.firstChild)
+			exchangelst = cons.getElementsByTagName('exchange')
+			for exchange in exchangelst:
+				while exchange.hasChildNodes():
+					xchNode.appendChild(exchange.firstChild)
+                        poolsizelst = cons.getElementsByTagName('poolsize')
+                        for poolsize in poolsizelst:
+                            renameElement(doc,poolsize,'psize')
+                        if len(nettolst)>0 or len(exchangelst)>0:               
+                              cons.parentNode.removeChild(cons)  
+		
+		if netNode.hasChildNodes():
+			constraintsNode.appendChild(netNode)
+		if xchNode.hasChildNodes():
+			constraintsNode.appendChild(xchNode)
+		if psizeNode.hasChildNodes():
+			constraintsNode.appendChild(psizeNode)
+		if constraintsNode.hasChildNodes():
+			rn = fluxml.getElementsByTagName('reactionnetwork')[0]
+			rn = rn.nextSibling
+			rnp = rn.parentNode
+			rnp.insertBefore(constraintsNode,rn)
+	
+	inplst = fluxml.getElementsByTagName('input')
+	for inp in inplst:
+		if inp.getAttribute('type') == 'cumulative':
+			flux.notice('fixing attribute "type" of input pool "%s"'
+				% inp.getAttribute('pool'))
+			inp.setAttribute('type','cumomer')
+		elif inp.getAttribute('type') == 'noncumulative':
+			flux.notice('fixing attribute "type" of input pool "%s"'
+				% inp.getAttribute('pool'))
+			inp.setAttribute('type','isotopomer')
+
+	for gt in ['MSgroup','MSMSgroup','NMR1Hgroup','NMR13Cgroup']:
+		glst = fluxml.getElementsByTagName(gt)
+		for g in glst:
+			flux.notice('translating element "%s" -> "group" ...' % gt)
+			group = doc.createElement('group')
+			group.setAttribute('id', g.getAttribute('id'))
+			if g.hasAttribute('scale'):
+				group.setAttribute('scale',g.getAttribute('scale'))
+			textual = doc.createElement('textual')
+			group.appendChild(textual)
+			textual.appendChild(doc.createTextNode(
+				g.getAttribute('spec')))
+			g.parentNode.replaceChild(group,g)
+
+	# Umbau der Flussmessungen
+	nflst = fluxml.getElementsByTagName('netflux')
+	for netflux in nflst:
+		if netflux.hasAttribute('fluxes'):
+			flux.notice('translating attr "fluxes" of element "netflux" into a formula ...')
+			fluxes = netflux.getAttribute('fluxes')
+			fluxes = fluxes.split(',')
+			fluxes = '+'.join(fluxes)
+			netflux.removeAttribute('fluxes')
+			textual = doc.createElement('textual')
+			textual.appendChild(doc.createTextNode(fluxes))
+			netflux.appendChild(textual)
+	xflst = fluxml.getElementsByTagName('xchflux')
+	for xchflux in xflst:
+		if xchflux.hasAttribute('fluxes'):
+			flux.notice('translating attr "fluxes" of element "xchflux" into a formula ...')
+			fluxes = xchflux.getAttribute('fluxes')
+			fluxes = fluxes.split(',')
+			fluxes = '+'.join(fluxes)
+			xchflux.removeAttribute('fluxes')
+			textual = doc.createElement('textual')
+			textual.appendChild(doc.createTextNode(fluxes))
+			xchflux.appendChild(textual)
+
+        if stationaryAttr == "false": 
+            simlst = fluxml.getElementsByTagName('simulation')
+            for sim in simlst:
+                poolvaluelst = sim.getElementsByTagName('poolvalue')
+                if poolvaluelst != None:
+                    flux.notice('renaming all "poolvalue" -> "poolsizevalue"')
+                for poolvalue in poolvaluelst:
+                        renameElement(doc,poolvalue,'poolsizevalue')
+            measurementlst = fluxml.getElementsByTagName('measurement')
+            for measurement in measurementlst:            
+                    poolmeasurementlst = measurement.getElementsByTagName('poolmeasurement')
+                    if poolmeasurementlst != None:
+                        flux.notice('renaming "poolmeasurement" -> "poolsizemeasurement"')
+                    for poolmeasurment in poolmeasurementlst:
+                        renameElement(doc,poolmeasurment,'poolsizemeasurement')
+    
+        # update FluxML level by user request
+        if fmltargetlevel != 0:
+                if (fmlsourcelevel== 1) and (fmltargetlevel == 2): # IST ==> INST
+                            cfglst = fluxml.getElementsByTagName('configuration')
+                            for cfg in cfglst:
+                                    cfg.setAttribute('stationary','false')
+                                    cfg.setAttribute('time','1')   
+                                    # recove model and remove measurement
+                                    model = cfg.getElementsByTagName('model')[0]
+                                    newmodel= model.cloneNode(True) 
+
+                                    grouplst = newmodel.getElementsByTagName('group')
+                                    for group in grouplst:
+                                        group.setAttribute('times','0.01,0.1,1') 
+                                    
+                                    simlst = cfg.getElementsByTagName('simulation')
+                                    for sim in simlst:
+                                        sim.setAttribute('type','explicit')   
+                                        variables = cfg.getElementsByTagName('variables')[0]    
+                                        sim.insertBefore(newmodel,variables)
+                                    measurement = cfg.getElementsByTagName('measurement')
+                                    cfg.removeChild(measurement[0])
+                                    flux.notice('FluxML level translating (L1-->L2) finished succesfully !!!')        
+                elif (fmlsourcelevel== 2) and (fmltargetlevel == 1): # INST ==> IST
+                        psizelst = fluxml.getElementsByTagName('psize')
+                        for psize in psizelst:
+                                psize.parentNode.removeChild(psize) 
+                        poolsizemeasurement = fluxml.getElementsByTagName('poolsizemeasurement')
+                        for pool in poolsizemeasurement:
+                                pool.parentNode.removeChild(pool)  
+                                
+                        cfglst = fluxml.getElementsByTagName('configuration')
+                        for cfg in cfglst:
+                                cfg.setAttribute('stationary','true')
+                                cfg.removeAttribute('time')   
+                                # recove model and remove measurement
+                                model = cfg.getElementsByTagName('model')[0]
+                                newmodel= model.cloneNode(True) 
+                                grouplst = newmodel.getElementsByTagName('group')
+                                for group in grouplst:
+                                    group.removeAttribute('times') 
+                                simlst = cfg.getElementsByTagName('simulation')
+                                for sim in simlst:
+                                    sim.setAttribute('type','explicit')   
+                                    variables = cfg.getElementsByTagName('variables')[0]    
+                                    sim.insertBefore(newmodel,variables)
+                                    poolvaluelst = fluxml.getElementsByTagName('poolsizevalue')
+                                    for poolsizevalue in poolvaluelst:
+                                        poolsizevalue.parentNode.removeChild(poolsizevalue) 
+                                measurement = cfg.getElementsByTagName('measurement')
+                                cfg.removeChild(measurement[0])                    
+                        flux.notice('FluxML level translating (L2-->L1) finished succesfully !!!')        
+                else:
+                        flux.warning('FluxML translating not allowed !!!')
+
+	# xmllint produziert wesentlich bessere Ergebnisse
+	p = Popen([ prg_xmllint + ' --format -' ], shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+	(fromchild,tochild) = (p.stdout,p.stdin)
+	tochild.write(doc.toxml(encoding='utf-8'))
+	tochild.flush()
+	tochild.close()
+	outfile.write(fromchild.read())
+
+if __name__ == "__main__":
+	main()
+

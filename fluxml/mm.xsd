@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:mml="http://www.w3.org/1998/Math/MathML"
+  targetNamespace="http://www.13cflux.net/fluxml_mm"
+  xmlns="http://www.13cflux.net/fluxml_mm"
+  elementFormDefault="qualified"
+  >
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      XMLSchema definition for FluxML/measurements.
+      (c) Michael Weitzel, mich(at)el-weitzel.de
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <xsd:import
+    namespace="http://www.w3.org/1998/Math/MathML"
+    schemaLocation="http://www.w3.org/Math/XMLSchema/mathml2/mathml2.xsd"/>
+
+  <xsd:simpleType name="AtomType">
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="1"/>
+      <xsd:maxInclusive value="1024"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ComposedWeightType">
+    <xsd:restriction base="xsd:string">
+      <xsd:pattern value="\d+(\s*,\s*\d+)?"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="TSType">
+    <xsd:restriction base="xsd:string">
+      <!-- conforming to strftime('%Y-%m-%d %H:%M:%S',gmtime(fTimestamp)) -->
+      <xsd:pattern value="\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- measurement -->
+  <xsd:element name="measurement">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="mlabel"/>
+        <xsd:element ref="model"/>
+        <xsd:element ref="data"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <!-- measurement/mlabel -->
+  <xsd:element name="mlabel">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element minOccurs="0" ref="date"/>
+        <xsd:element minOccurs="0" ref="version"/>
+        <xsd:element minOccurs="0" ref="comment"/>
+        <xsd:element minOccurs="0" ref="fluxunit"/>
+        <xsd:element minOccurs="0" ref="poolsizeunit"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+  <!-- elements "date", "version", "comment" are in common with fluxml -->
+  <xsd:element name="date" type="TSType"/>
+  <xsd:element name="version" type="xsd:string"/>
+  <xsd:element name="comment" type="xsd:string"/>
+
+  <!-- measurement/mlabel/fluxunit -->
+  <xsd:element name="fluxunit" type="xsd:string"/>
+
+  <!-- measurement/mlabel/poolsizeunit -->
+  <xsd:element name="poolsizeunit" type="xsd:string"/>
+  
+  <!-- measurement/model -->
+  <xsd:element name="model">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element minOccurs="0" ref="labelingmeasurement"/>
+        <xsd:element minOccurs="0" ref="fluxmeasurement"/>
+        <xsd:element minOccurs="0" ref="poolmeasurement"/>
+        <xsd:element minOccurs="0" ref="fluxratios"/>
+      </xsd:sequence>
+      <xsd:attribute name="stationary" type="xsd:boolean" default="true"/>
+    </xsd:complexType>
+  </xsd:element>
+
+  <!-- measurement/model/labelingmeasurement -->
+  <xsd:element name="labelingmeasurement">
+    <xsd:complexType>
+      <xsd:choice>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element ref="MSgroup"/>
+          <xsd:element ref="MSMSgroup"/>
+          <xsd:element ref="NMR1Hgroup"/>
+          <xsd:element ref="NMR13Cgroup"/>
+          <xsd:element ref="group"/>
+        </xsd:choice>
+      </xsd:choice>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- ohne Kommas! -->
+  <xsd:simpleType name="TimesType">
+    <xsd:list itemType="xsd:double"/>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="GroupScaleType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="auto"/>
+      <xsd:enumeration value="one"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- measurement/model/labelingmeasurement/MSgroup -->
+  <xsd:element name="MSgroup">
+    <xsd:complexType>
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+      <xsd:attribute name="scale" type="GroupScaleType" use="optional"/>
+      <xsd:attribute name="spec">
+	<xsd:simpleType>
+	  <xsd:restriction base="xsd:string">
+	    <!-- Xerces-C 2.7.0 bug -->
+	    <xsd:pattern value=".*"/>
+	    <!-- <xsd:pattern value="[A-Za-z_][A-Za-z0-9_]*(\[(\d+(-\d+)?)(,(\d+(-\d+)?))*\])?#M\d+(,\d+)*"/> -->
+	  </xsd:restriction>
+	</xsd:simpleType>
+      </xsd:attribute>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/labelingmeasurement/MSMSgroup -->
+  <xsd:element name="MSMSgroup">
+    <xsd:complexType>
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+      <xsd:attribute name="scale" type="GroupScaleType" use="optional"/>
+      <xsd:attribute name="spec">
+	<xsd:simpleType>
+	  <xsd:restriction base="xsd:string">
+	    <!-- Xerces-C 2.7.0 bug -->
+	    <xsd:pattern value=".*"/>
+	    <!-- <xsd:pattern value="[A-Za-z_][A-Za-z0-9_]*(\[(\d+(-\d+)?)(,(\d+(-\d+)?))*:(\d+(-\d+)?)(,(\d+(-\d+)?))*\])?#M\(\d+,\d+\)(,\(\d+,\d+\))*"/> -->
+	  </xsd:restriction>
+	</xsd:simpleType>
+      </xsd:attribute>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/labelingmeasurement/NMR1Hgroup -->
+  <xsd:element name="NMR1Hgroup">
+    <xsd:complexType>
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+      <xsd:attribute name="scale" type="GroupScaleType" use="optional"/>
+      <xsd:attribute name="spec">
+	<xsd:simpleType>
+	  <xsd:restriction base="xsd:string">
+	    <!-- Xerces-C 2.7.0 bug: -->
+	    <xsd:pattern value=".*"/>
+	    <!-- <xsd:pattern value="[A-Za-z_][A-Za-z0-9_]*#P\d+(,P?\d+)"/> -->
+	  </xsd:restriction>
+	</xsd:simpleType>
+      </xsd:attribute>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/labelingmeasurement/NMR13Cgroup -->
+  <xsd:element name="NMR13Cgroup">
+    <xsd:complexType>
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+      <xsd:attribute name="scale" type="GroupScaleType" use="optional"/>
+      <xsd:attribute name="spec">
+	<xsd:simpleType>
+	  <xsd:restriction base="xsd:string">
+	    <!-- Xerces-C 2.7.0 bug: -->
+	    <xsd:pattern value=".*"/>
+	    <!-- <xsd:pattern value="[A-Za-z_]([A-Za-z0-9_])*#((S|DL|DR|DD|T)?\d+(,\d+)*)(,((S|DL|DR|DD|T)?\d+(,\d+)*))*"/> -->
+	  </xsd:restriction>
+	</xsd:simpleType>
+      </xsd:attribute>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/labelingmeasurement/group -->
+  <xsd:element name="group">
+    <xsd:complexType mixed="true">
+      <xsd:choice>
+        <xsd:element ref="textual"/>
+	<xsd:element ref="mml:math"/>
+      </xsd:choice>
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+      <xsd:attribute name="scale" type="GroupScaleType" use="optional"/>
+    </xsd:complexType>
+  </xsd:element>
+
+  <!-- measurement/model/labelingmeasurement/group/textual -->
+  <xsd:element name="textual" type="xsd:string"/>
+  
+  <!-- measurement/model/fluxmeasurement -->
+  <xsd:element name="fluxmeasurement">
+    <xsd:complexType>
+      <xsd:choice>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element ref="netflux"/>
+          <xsd:element ref="xchflux"/>
+        </xsd:choice>
+      </xsd:choice>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/fluxmeasurement/netflux -->
+  <xsd:element name="netflux">
+    <xsd:complexType>
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <!-- IDREFS for the stand-alone mm.xsd makes no sense -->
+      <!-- [xsd:attribute name="fluxes" type="xsd:IDREFS"/] -->
+      <xsd:attribute name="fluxes" type="xsd:string"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/fluxmeasurement/xchflux -->
+  <xsd:element name="xchflux">
+    <xsd:complexType>
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <!-- IDREFS for the stand-alone mm.xsd makes no sense -->
+      <!-- [xsd:attribute name="fluxes" type="xsd:IDREFS"/] -->
+      <xsd:attribute name="fluxes" type="xsd:string"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/poolmeasurement -->
+  <xsd:element name="poolmeasurement">
+    <xsd:complexType>
+      <xsd:choice>
+        <xsd:element maxOccurs="unbounded" ref="pgroup"/>
+      </xsd:choice>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/poolmeasurement/pgroup -->
+  <xsd:element name="pgroup">
+    <xsd:complexType>
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <xsd:attribute name="pools"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/fluxratios -->
+  <xsd:element name="fluxratios">
+    <xsd:complexType>
+      <xsd:choice>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element ref="netratio"/>
+          <xsd:element ref="xchratio"/>
+        </xsd:choice>
+      </xsd:choice>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/model/fluxratios/netratio -->
+  <xsd:element name="netratio">
+    <xsd:complexType mixed="true">
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+    </xsd:complexType>
+  </xsd:element>
+
+  <!-- measurement/model/fluxratios/xchratio -->
+  <xsd:element name="xchratio">
+    <xsd:complexType mixed="true">
+      <xsd:attribute name="id" type="xsd:ID"/>
+      <xsd:attribute name="times" type="TimesType" use="optional"/>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/data -->
+  <xsd:element name="data">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element ref="dlabel"/>
+        <xsd:element maxOccurs="unbounded" ref="datum"/>
+      </xsd:sequence>
+      <xsd:attribute name="id" type="xsd:ID"/>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/data/dlabel -->
+  <xsd:element name="dlabel">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="start" type="TSType"/>
+        <xsd:element name="finish" type="TSType"/>
+        <xsd:element name="people" type="xsd:string"/>
+        <xsd:element name="strain" type="xsd:string"/>
+        <xsd:element ref="comment"/>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+  
+  <!-- measurement/data/datum -->
+  <xsd:element name="datum">
+    <xsd:complexType mixed="true">
+      <xsd:attribute name="id" type="xsd:IDREF"/>
+      <!-- <xsd:attribute name="group" type="xsd:string" use="optional"/> -->
+      <xsd:attribute name="row" use="optional">
+	<xsd:simpleType>
+	  <xsd:restriction base="xsd:integer">
+	    <xsd:minInclusive value="1"/>
+	    <xsd:maxInclusive value="256"/>
+	  </xsd:restriction>
+	</xsd:simpleType>
+      </xsd:attribute>
+      <xsd:attribute name="time" type="xsd:double" use="optional"/>
+      <xsd:attribute name="weight" type="ComposedWeightType" use="optional"/>
+      <xsd:attribute name="pos" type="AtomType" use="optional"/>
+      <xsd:attribute name="stddev" type="xsd:double"/>
+      <xsd:attribute name="type" use="optional">
+	<xsd:simpleType>
+	  <xsd:restriction base="xsd:string">
+	    <xsd:enumeration value="S"/>
+	    <xsd:enumeration value="DL"/>
+	    <xsd:enumeration value="DR"/>
+	    <xsd:enumeration value="DD"/>
+	    <xsd:enumeration value="T"/>
+	  </xsd:restriction>
+	</xsd:simpleType>
+      </xsd:attribute>
+    </xsd:complexType>
+  </xsd:element>
+  
+</xsd:schema>
+<!-- vim:set shiftwidth=2:set expandtab: -->
+

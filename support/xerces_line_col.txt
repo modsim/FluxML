@@ -1,0 +1,235 @@
+First of all, this is one of these recurring questions that are asked 
+all over again and again. Maybe the answer is put in a place so 
+prominent (FAQ?) that it doesn't occur any more (I rember that I was 
+asking the same question as well a couple of months ago)
+
+You will have to add tagging objects to each DOMElement while you let 
+the DOMParser parse the XML file. So basically, what you do is is to 
+derive a class from the DOMParser and override it's startElement 
+function (yep, it is actually a SAXParser as well). Another option might 
+be to maintain a hashtable with pointers to DOMNodes as keys, but I 
+didn't do that (hmm, might not be too bad of an idea, maybe next time ;)
+
+The Tags need to be refernce counted if you want to clone nodes (hmm, I 
+wonder if I do that in my project, actually), otherwise you'll end up 
+with nasty lifetime issues for your Tag objects. For this reason, Tags 
+are implemented with their own specific DataHandler, which takes care of 
+these lifetime issues.
+
+However, I hope that the code I'm submitting here will answer it once 
+and for all (although I don't guarantee it to be perfect nor performant, 
+it just works for what I do, if it doesn't work for you it's your 
+problem - and <disclaimer>I DONT TAKE RESPONSIBILITY FOR ANY PROBLEMS 
+CAUSED BY IT</disclaimer> ;)
+
+Find snippets of the code I am using to do this.
+
+I hope this code is somewhat useful to you Michael, and also everyone 
+else who stumbles over this problem. It that seems all too simple so 
+that one would assume Xerces can do it out of the box, but unfortunately 
+it can't.
+
+Cheers,
+
+Uwe
+
+------------ from TaggingDOMParser.hpp:
+
+#include <xercesc/parsers/XercesDOMParser.hpp>
+#include <xercesc/dom/DOMUserDataHandler.hpp>
+
+#include <string>
+
+#include "assert.h"
+
+class TaggingDOMParser : public XERCES_CPP_NAMESPACE::XercesDOMParser {
+    class TagDataHandler;
+    friend class TagDataHandler;
+   
+    public:
+        struct Tag {
+            public:
+                inline Tag()
+                :    lineNumber(-1),
+                    columnNumber(-1),
+                    referenceCount(0){
+                }
+               
+                inline void link(){
+                    ++referenceCount;
+                }
+               
+                inline void unlink(){
+                    assert(referenceCount>0);
+                    --referenceCount;
+                    if(referenceCount <= 0)
+                        delete this;
+                }
+               
+            public:
+                std::string systemID;
+                int lineNumber;
+                int columnNumber;
+               
+            private:
+                int referenceCount;
+           
+            protected:
+                inline ~Tag(){
+                }
+           
+        };
+   
+    private:
+        TagDataHandler* dataHandler;
+       
+    protected:
+        Tag* createTag();
+       
+    public:
+        TaggingDOMParser();
+        virtual ~TaggingDOMParser();
+       
+        virtual void startElement (const 
+XERCES_CPP_NAMESPACE::XMLElementDecl &elemDecl, const unsigned int 
+uriId, const XMLCh *const prefixName, const 
+XERCES_CPP_NAMESPACE::RefVectorOf< XERCES_CPP_NAMESPACE::XMLAttr > 
+&attrList, const unsigned int attrCount, const bool isEmpty, const bool 
+isRoot);
+       
+        static const TaggingDOMParser::Tag* getTag(const 
+XERCES_CPP_NAMESPACE::DOMNode* node);
+};
+
+
+------------ TaggingDOMParser.cpp
+
+#include "TaggingDOMParser.hpp"
+
+#include <xercesc/internal/XMLScanner.hpp>
+
+#include "StrX.hpp"
+
+using namespace XERCES_CPP_NAMESPACE;
+
+
+static XMLCh* tagKey = L"LineNumberAnnotation";
+
+class TaggingDOMParser::TagDataHandler : public 
+XERCES_CPP_NAMESPACE::DOMUserDataHandler {
+    private:
+        TaggingDOMParser* parser;
+       
+    public:
+   
+        TagDataHandler()
+        :    parser(0)
+        {
+        }
+       
+        virtual ~TagDataHandler(){
+        }
+       
+        inline setParser(TaggingDOMParser* parser){
+            this->parser = parser;
+        }
+       
+        virtual void handle(DOMOperationType operation, const XMLCh 
+*const key, void *data, const DOMNode *src, const DOMNode *dst){
+            Tag* srcTag = static_cast<Tag*>(data);
+            switch(operation){
+                // import and clone are basically the same case, in 
+both, the node
+                // is cloned
+                case NODE_IMPORTED:
+                case NODE_CLONED:
+                   srcTag->link();
+                    break;
+                case NODE_DELETED:
+                    srcTag->unlink();
+                    break;
+                case NODE_RENAMED:
+                    // do nothing on rename
+                    break;
+            }
+        }
+};
+
+
+TaggingDOMParser::TaggingDOMParser()
+:    dataHandler(new TagDataHandler()){
+    dataHandler->setParser(this);
+}
+
+
+TaggingDOMParser::~TaggingDOMParser()
+{
+}
+
+
+TaggingDOMParser::Tag* TaggingDOMParser::createTag(){
+    return new Tag();
+}
+
+
+void TaggingDOMParser::startElement(
+    const XMLElementDecl &elemDecl,
+    const unsigned int uriId,
+    const XMLCh *const prefixName,
+    const RefVectorOf< XMLAttr > &attrList,
+    const unsigned int attrCount,
+    const bool isEmpty,
+    const bool isRoot
+    ) {
+    // supercall
+    XercesDOMParser::startElement(elemDecl, uriId, prefixName, attrList, 
+attrCount, isEmpty, isRoot);
+   
+    if(!isEmpty){
+        Tag* tag = createTag();
+        const Locator* locator = getScanner()->getLocator();
+        tag->systemID = StrX(locator->getSystemId()).getString();
+        tag->lineNumber = locator->getLineNumber();
+        tag->columnNumber = locator->getColumnNumber();
+       
+        XercesDOMParser::fCurrentNode->setUserData(tagKey, tag, 
+dataHandler);
+       
+        tag->link();
+    }
+}
+
+
+const TaggingDOMParser::Tag* TaggingDOMParser::getTag(const DOMNode* node){
+    return static_cast<TaggingDOMParser::Tag*>(node->getUserData(tagKey));
+}
+
+-------------------
+
+Oh, and StrX() is actually just a helper class that takes and XMLCh* in 
+it's contructor and stores the UTF8-transcoded version, which can be 
+obtained by it's getString() method; you might find a similar 
+implementation in Xerces' examples
+
+Hope this helps, feedback welcome.
+
+Cheers,
+
+Uwe
+
+
+Michael Weitzel michael.weitzel-at-uni-siegen.de |xerces-c-users mailing 
+list| schrieb:
+> Hi all,
+>
+> is there a way to determine the line and column of the XML file
+> associated with a specific DOMNode / element? The data in my XML format
+> requires a few complex semantic validations that cannot be expressed by
+> the DTD. The simpler errors can be detected based on the context while
+> traversing the DOM tree and it would be nice to give more specific error
+> messages.
+>
+> Am I right that "DOMLocator" cannot be used since no "DOMError" occurs?
+>
+> Thanks! :)
+>   

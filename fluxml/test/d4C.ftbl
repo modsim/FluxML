@@ -1,0 +1,481 @@
+PROJECT					
+	NAME	VERSION	FORMAT	DATE	COMMENT
+	AS1	Version 8 + AS		27 02 2007	NET: tca4 F, go1&go2 D, GlyOxEx&CO2out F, AceEx D, XCH: tca3&tca4 F, tca7a/7b/8a/8b C=0, go1&go2 F
+					//1. Startwerte verwendet
+NETWORK					
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+// Mixture Input					
+	upt1	Glc1		G6P	
+		#ABCDEF		#ABCDEF	
+	uptU	GlcU		G6P	
+		#ABCDEF		#ABCDEF	
+	upt0	Glc0		G6P	
+		#ABCDEF		#ABCDEF	
+	uptGlu	Glu0		Glu	
+		#ABCDE		#ABCDE	
+// Embden Meyerhof Pathway					
+	emp1	G6P		F6P	
+		#ABCDEF		#ABCDEF	
+	emp2	F6P		FBP	
+		#ABCDEF		#ABCDEF	
+	emp3	FBP		DHAP	GAP
+		#ABCDEF		#CBA	#DEF
+	emp4	DHAP		GAP	
+		#ABC		#ABC	
+	emp5	GAP		PGP	
+		#ABC		#ABC	
+	emp6	PGP		PEP	
+		#ABC		#ABC	
+	emp7	PEP		Pyr	
+		#ABC		#ABC	
+// Pentose Phosphate Pathway					
+	ppp1	G6P		CO2	Ru5P
+		#ABCDEF		#A	#BCDEF
+	ppp2	Ru5P		Xyl5P	
+		#ABCDE		#ABCDE	
+	ppp3	Ru5P		Ri5P	
+		#ABCDE		#ABCDE	
+	ppp4	Xyl5P	E4P	GAP	F6P
+		#ABCDE	#abcd	#CDE	#ABabcd
+	ppp5	Xyl5P	Ri5P	S7P	GAP
+		#ABCDE	#abcde	#ABabcde	#CDE
+	ppp6	GAP	S7P	E4P	F6P
+		#ABC	#abcdefg	#defg	#abcABC
+// Tricarbonsäurezyclus					
+	tca1	Pyr		AcCoA	CO2
+		#ABC		#BC	#A
+	tca2	AcCoA	OAA	Cit	
+		#ab	#ABCD	#DCBAba	
+	tca3	Cit		ICit	
+		#ABCDEF		#ABCDEF	
+	tca4	ICit		AKG	CO2
+		#ABCDEF		#ABCEF	#D
+	tca5	AKG		SuccCoA	CO2
+		#ABCDE		#BCDE	#A
+	tca6	SuccCoA		Succ	
+		#ABCD		#ABCD	
+	tca7a	Succ		Fum	
+		#ABCD		#ABCD	
+	tca7b	Succ		Fum	
+		#ABCD		#DCBA	
+	tca8a	Fum		MAL	
+		#ABCD		#ABCD	
+	tca8b	Fum		MAL	
+		#ABCD		#DCBA	
+	tca9	MAL		OAA	
+		#ABCD		#ABCD	
+//	Glyoxylate shunt				
+	go1	ICit		GlyOx	Succ
+		#ABCDEF		#AB	#CDEF
+	go2	GlyOx	AcCoA	MAL	
+		#AB	#ab	#ABba	
+// Anaplerose Pyr to OAA nicht in E coli					
+//	ana1	Pyr	CO2	OAA	
+//		#ABC	#a	#ABCa	
+	ana2	OAA		PEP	CO2
+		#ABCa		#ABC	#a
+	ana3	MAL		CO2	Pyr
+		#ABCa		#a	#ABC
+// Glutamate synthesis					
+	gdh	Glu		AKG	
+		#ABCDE		#ABCDE
+// GlyOx transport				
+	glyOxEx	GlyOx		GlyOx_ex
+		#AB		#AB
+// Ace transport				
+	aceEx	AcCoA		Ace_ex
+		#AB		#AB
+// CO2 output				
+	coOut	CO2		CO2_out
+		#A		#A
+// Flux to biomass				
+	G6P_bm	G6P		G6P_BM
+		#ABCDEF		#ABCDEF
+	F6P_bm	F6P		F6P_BM
+		#ABCDEF		#ABCDEF
+	Ri5P_bm	Ri5P		Ri5P_BM
+		#ABCDE		#ABCDE	
+	E4P_bm	E4P		E4P_BM	
+		#ABCD		#ABCD	
+	GAP_bm	GAP		GAP_BM	
+		#ABC		#ABC	
+// Phosphoglycerate Family					
+
+// Serine synthesis					
+	PGP_Ser	PGP		Ser	
+		#ABC		#ABC	
+
+	PGP_Cys	Ser		Cys	
+		#ABC		#ABC	
+
+// Glycine synthesis					
+	PGP_Gly	Ser		Gly	FTHF
+		#ABC		#AB	#C
+	FTHF_out	FTHF		FTHF_ex	
+		#A		#A	
+
+	PGP_Gly_bm	Gly		Gly_BM	
+		#AB		#AB	
+// further biosynthetic reactions					
+	PGP_bm	PGP		PGP_BM	
+		#ABC		#ABC	
+// PEP Family					
+	PEP_bm	PEP		PEP_BM	
+		#ABC		#ABC	
+// Pyruvate Family					
+// Alanine synthesis					
+	Pyr_Ala	Pyr		Ala	
+		#ABC		#ABC	
+
+	Pyr_Ala_bm	Ala		Ala_BM	
+		#ABC		#ABC	
+
+// Valine synthesis					
+	Pyr_Val	Pyr	Pyr	Val	CO2
+		#ABC	#abc	#ABbcC	#a
+
+	Pyr_Val_bm	Val		Val_BM	
+		#ABCDE		#ABCDE	
+
+// further biosynthetic reactions					
+	Pyr_bm	Pyr		Pyr_BM	
+		#ABC		#ABC	
+
+	AcCoA_bm	AcCoA		AcCoA_BM	
+		#AB		#AB	
+// Oxaloacetate Family					
+
+// Aspartate synthesis					
+	OAA_Asp	OAA	Glu	Asp	AKG
+		#ABCD	#abcde	#ABCD	#abcde
+
+// Threonine synthesis					
+	OAA_Thr	Asp		Thr	
+		#ABCD		#ABCD	
+
+	OAA_Thr_bm	Thr		Thr_BM	
+		#ABCD		#ABCD	
+// Asparagine synthesis					
+	OAA_Asn	Asp		Asn	
+		#ABCD		#ABCD	
+
+	OAA_Asn_bm	Asn		Asn_BM				
+		#ABCD		#ABCD				
+
+// further biosynthetic reactions								
+	OAA_bm	OAA		OAA_BM				
+		#ABCD		#ABCD				
+	AKG_bm	AKG		AKG_BM				
+		#ABCDE		#ABCDE				
+FLUXES								
+	NET							
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		upt1	F	1.325				
+		uptU	F	1.325				
+		upt0	D					
+		uptGlu	F	1.112				
+
+		emp1	D		
+		emp2	D		
+		emp3	D		
+		emp4	D		
+		emp5	D		
+		emp6	D		
+		emp7	F	4	// Pk reaction must be constrained to >= Pts-flux
+
+		ppp1	F	0.9	
+		ppp2	D		
+		ppp3	D		
+		ppp4	D		
+		ppp5	D		
+		ppp6	D		
+
+		tca1	D		
+		tca2	D		//CS EA not available
+		tca3	D		
+		tca4	F	0.01	//gene deletion
+		tca5	D		
+		tca6	D		
+		tca7a	D		
+		tca7b	D		
+		tca8a	D		
+		tca8b	D		
+		tca9	D		
+
+		go1	D		
+		go2	D		//gene deletion
+
+		ana2	D		
+		ana3	D			
+
+		gdh	D			
+		glyOxEx	F	0.01		
+		aceEx	D			
+		coOut	F	9.268		
+
+//	mu =	0.325	[1/h]			
+		G6P_bm	C	0.0679		
+		F6P_bm	C	0.0234		
+		Ri5P_bm	C	0.2922		
+		E4P_bm	C	0.1173		
+		GAP_bm	C	0.0403		
+		PGP_Ser	D			
+		PGP_Cys	C	0.0316		//6.02%
+		PGP_Gly	C	0.2113		//40.28%
+		PGP_Gly_bm	D			
+		PGP_bm	D			
+		PEP_bm	C	0.2519		
+		Pyr_Ala	C	0.1605		//16.64%
+		Pyr_Ala_bm	D			
+		Pyr_Val	C	0.2644		//27.41%
+		Pyr_Val_bm	D			
+		Pyr_bm	D			
+		AcCoA_bm	C	0.792		
+		OAA_Asp	D			
+		OAA_Thr	C	0.0678		//12.77%
+		OAA_Thr_bm	D			
+		OAA_Asn	C	0.1289		//24.27%
+		OAA_Asn_bm	D			
+		OAA_bm	D			
+		AKG_bm	C	0.4189		
+
+	XCH							
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		upt1	D					
+		uptU	D					
+		upt0	D					
+		uptGlu	D					
+
+		emp1	F	0.2	//n.d.			
+		emp2	C	0				
+		emp3	C	0	// ! may reversible			
+		emp4	F	0.8				
+		emp5	F	0.8				
+		emp6	F	0.8				
+		emp7	C	0				
+
+		ppp1	C	0	
+		ppp2	F	0.8	
+		ppp3	F	0.8	
+		ppp4	F	0.8	
+		ppp5	F	0.2	
+		ppp6	F	0.2	
+
+		tca1	C	0	
+		tca2	C	0	
+		tca3	F	0.8	
+		tca4	F	0.1	
+		tca5	C	0	
+		tca6	C	0	
+		tca7a	C	0	//n.i
+		tca7b	C	0	//n.i
+		tca8a	C	0	//n.i
+		tca8b	C	0	//n.i
+		tca9	F	0.2	
+
+		go1	F	0.1	
+		go2	F	0.1	
+
+		ana2	F	0.1	
+		ana3	F	0.1	
+		gdh	C	0	//n.i
+
+		PGP_Ser	C	0	
+		PGP_Gly	C	0	
+		Pyr_Ala	C	0	
+		Pyr_Val	C	0	
+		OAA_Asp	C	0	
+		OAA_Thr	C	0	
+		OAA_Asn	C	0
+EQUALITIES				
+	NET			
+		VALUE	FORMULA	
+		0	tca7a-tca7b	
+		0	tca8a-tca8b	
+		3.785	upt1+uptU+upt0	
+
+		0.5246	PGP_bm+PGP_Ser	
+		0.9646	Pyr_bm+Pyr_Ala+Pyr_Val	
+		0.5307	OAA_bm+OAA_Asp	
+	XCH			
+		VALUE	FORMULA	
+INEQUALITIES				
+	NET			
+		VALUE	COMP	FORMULA
+// Inequalities for Input and Output Fluxes are generated automatically							
+		3.785	<=	emp7			
+	XCH						
+		VALUE	COMP	FORMULA			
+// Inequalities for Input and Output Fluxes are generated automatically							
+FLUX_MEASUREMENTS							
+	FLUX_NAME	VALUE	DEVIATION	//		Val	Dev
+	upt1	1.325	0.01				
+	uptU	1.325	0.01				
+	upt0	1.136	0.01				
+	coOut	9.268	0.1				
+	glyOxEx	0.01	0.01				
+	aceEx	4.899	0.05				
+LABEL_INPUT							
+	META_NAME	ISOTOPOMER	VALUE				
+	Glc1	#000000	0.01		// Natural marked isos !!		
+		#100000	0.935		// 99% percent labeled at first position
+		#100001	0.011		// Naturally marked isos!!!
+		#100010	0.011		// Naturally marked isos!!!
+		#100100	0.011		// Naturally marked isos!!!
+		#101000	0.011		// Naturally marked isos!!!
+		#110000	0.011		// Naturally marked isos!!!
+	GlcU	#000000	0.01		
+		#111111	0.99		// 100% unitary marked
+	Glc0	#000000	0.934		// 100% unlabled
+		#000001	0.011		// Naturally marked isos!!!
+		#000010	0.011		// Naturally marked isos!!!
+		#000100	0.011		// Naturally marked isos!!!
+		#001000	0.011		// Naturally marked isos!!!
+		#010000	0.011		// Naturally marked isos!!!
+		#100000	0.011		
+	Glu0	#00000	0.945		// 100% unlabled
+		#00001	0.011		// Naturally marked isos!!!		
+		#00010	0.011		// Naturally marked isos!!!		
+		#00100	0.011		// Naturally marked isos!!!		
+		#01000	0.011		// Naturally marked isos!!!		
+		#10000	0.011		// Naturally marked isos!!!		
+LABEL_MEASUREMENTS							
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS		 
+	FBP	1	0.241508	0.06151673	#000000		
+		1	0.290511	0.03854726	#000001+#000010+#000100+#001000+#010000+#100000		
+		1	0.055228	0.01508403	#000011+#000101+#000110+#001001+#001010+#001100+#010001+#010010+#010100+#011000+#100001+#100010+#100100+#101000+#110000		
+		1	0.123922	0.03217493	#000111+#001011+#001101+#001110+#010011+#010101+#010110+#011001+#011010+#011100+#100011+#100101+#100110+#101001+#101010+#101100+#110001+#110010+#110100+#111000		
+		1	0.062452	0.01662278	#001111+#010111+#011011+#011101+#011110+#100111+#101011+#101101+#101110+#110011+#110101+#110110+#111001+#111010+#111100		
+		1	0	0.01	#011111+#101111+#110111+#111011+#111101+#111110		
+		1	0.226376	0.05516611	#111111		
+
+	DHAP	1	0.495048	0.09644128	#000		
+		1	0.167956	0.02527751	#001+#010+#100
+		1	0	0.01	#011+#101+#110
+		1	0.336994	0.06017525	#111
+
+	//Summe 2PG und 3PG				
+	PGP	1	0.459685	0.0270704	#000
+		1	0.191481	0.02629996	#001+#010+#100
+		1	0.043538	0.01138608	#011+#101+#110
+		1	0.305293	0.04328686	#111
+
+	PEP	1	0.495395	0.0407671	#000
+		1	0.172909	0.02673597	#001+#010+#100
+		1	0.053314	0.01045186	#011+#101+#110
+		1	0.278379	0.01106022	#111
+
+	Pyr	1	0.446923	0.07327696	#000
+		1	0.151454	0.024845	#001+#010+#100
+		1	0.059507	0.0187786	#011+#101+#110
+		1	0.342114	0.05676698	#111
+
+	//Summe Xyl5P und Ru5P				
+	Ru5P	1	0.335677	0.09404718	#00000
+		1	0.156979	0.04467475	#00001+#00010+#00100+#01000+#10000
+		1	0.15014	0.04325079	#00011+#00101+#00110+#01001+#01010+#01100+#10001+#10010+#10100+#11000
+		1	0.15626	0.03842368	#00111+#01011+#01101+#01110+#10011+#10101+#10110+#11001+#11010+#11100
+		1	0.06586	0.02153168	#01111+#10111+#11011+#11101+#11110
+		1	0.135082	0.0301896	#11111
+
+	Cit	1	0.8545	0.40050717	#000000
+		1	0.082247	0.03246088	#000001+#000010+#000100+#001000+#010000+#100000
+		1	0.030325	0.01101133	#000011+#000101+#000110+#001001+#001010+#001100+#010001+#010010+#010100+#011000+#100001+#100010+#100100+#101000+#110000
+		1	0.019861	0.01097366	#000111+#001011+#001101+#001110+#010011+#010101+#010110+#011001+#011010+#011100+#100011+#100101+#100110+#101001+#101010+#101100+#110001+#110010+#110100+#111000
+		1	0.010291	0.01021657	#001111+#010111+#011011+#011101+#011110+#100111+#101011+#101101+#101110+#110011+#110101+#110110+#111001+#111010+#111100
+		1	0.002773	0.01109386	#011111+#101111+#110111+#111011+#111101+#111110
+		1	0	0.01	#111111
+
+	//Aco Messdaten vorhanden, Modell muss erweitert werden 				
+
+	ICit	1	0.7857	0.52751813	#000000
+		1	0.085407	0.032563	#000001+#000010+#000100+#001000+#010000+#100000
+		1	0.040532	0.01001118	#000011+#000101+#000110+#001001+#001010+#001100+#010001+#010010+#010100+#011000+#100001+#100010+#100100+#101000+#110000
+		1	0.055715	0.01500643	#000111+#001011+#001101+#001110+#010011+#010101+#010110+#011001+#011010+#011100+#100011+#100101+#100110+#101001+#101010+#101100+#110001+#110010+#110100+#111000
+		1	0.017609	0.0100421	#001111+#010111+#011011+#011101+#011110+#100111+#101011+#101101+#101110+#110011+#110101+#110110+#111001+#111010+#111100
+		1	0.015034	0.01079983	#011111+#101111+#110111+#111011+#111101+#111110
+		1	0	0.01	#111111
+
+	AKG	1	0.943741	0.10658671	#00000
+		1	0.048851	0.01170553	#00001+#00010+#00100+#01000+#10000
+		1	0.007407	0.0103321	#00011+#00101+#00110+#01001+#01010+#01100+#10001+#10010+#10100+#11000
+		1	0	0.01	#00111+#01011+#01101+#01110+#10011+#10101+#10110+#11001+#11010+#11100
+		1	0	0.01	#01111+#10111+#11011+#11101+#11110
+		1	0	0.01	#11111
+
+	Succ	1	0.915977	0.04282368	#0000
+		1	0.056291	0.01061581	#0001+#0010+#0100+#1000
+		1	0.01097	0.01007154	#0011+#0101+#0110+#1001+#1010+#1100
+		1	0.01168	0.01020773	#0111+#1011+#1101+#1110
+		1	0.005079	0.01003944	#1111
+
+	MAL	1	0.538158	0.05872102	#0000
+		1	0.205941	0.03461291	#0001+#0010+#0100+#1000
+		1	0.068843	0.01367785	#0011+#0101+#0110+#1001+#1010+#1100
+		1	0.131688	0.01830739	#0111+#1011+#1101+#1110
+		1	0.055368	0.01419667	#1111
+
+	Asp	1	0.46298	0.01651	#0000
+		1	0.11725	0.01049	#0100+#1000
+		1	0.10965	0.01164	#0001+#0010
+		1	0.02033	0.01002	#1100
+		1	0.04127	0.01005	#0101+#0110+#1001+#1010
+		1	0.02048	0.01003	#0011
+		1	0.0731	0.01025	#1101+#1110
+		1	0.08314	0.01052	#0111+#1011
+		1	0.07181	0.01039	#1111
+	Glu	1	0.90366	0.03078	#00000
+		1	0.01848	0.01002	#00001+#00010+#00100+#01000
+		1	0.07178	0.01033	#10000
+		1	0.00109	0.01	#00011+#00101+#00110+#01001+#01010+#01100
+		1	0.00474	0.01	#10001+#10010+#10100+#11000
+		1	0.00007	0.01	#00111+#01011+#01101+#01110
+		1	0.00018	0.01	#10011+#10101+#10110+#11001+#11010+#11100
+		1	0	0.01	#01111
+		1	0	0.01	#10111+#11011+#11101+#11110
+		1	0	0.01	#11111
+	Ala	1	0.46798	0.0538	#000
+		1	0.04221	0.01016	#001+#010
+		1	0.14241	0.01707	#100
+		1	0.02499	0.0102	#011
+		1	0	0.01	#101+#110
+		1	0.32241	0.03936	#111
+	Val	1	0.30091	0.05058	#00000
+		1	0.02468	0.01115	#00001+#00010+#00100+#01000
+		1	0.14034	0.02765	#10000
+		1	0.0169	0.01066	#00011+#00101+#00110+#01001+#01010+#01100
+		1	0.19884	0.04304	#10001+#10010+#10100+#11000
+		1	0.14478	0.03369	#00111+#01011+#01101+#01110
+		1	0.04199	0.01396	#10011+#10101+#10110+#11001+#11010+#11100
+		1	0.04082	0.01354	#01111
+		1	0.01227	0.01086	#10111+#11011+#11101+#11110
+		1	0.07847	0.01927	#11111
+	Thr	1	0.7501	0.0311	#0000
+		1	0.0308	0.01035	#0001+#0010+#0100
+		1	0.07037	0.01334	#1000
+		1	0.01457	0.01038	#0011+#0101+#0110
+		1	0.02235	0.0104	#1001+#1010+#1100
+		1	0.04279	0.01193	#0111
+		1	0.0352	0.01086	#1011+#1101+#1110
+		1	0.03382	0.01048	#1111
+	Asn	1	0.8107	0.06762	#0000
+		1	0	0.01	#0001+#0010+#0100
+		1	0	0.01	#1000
+		1	0	0.01	#0011+#0101+#0110
+		1	0	0.01	#1001+#1010+#1100						
+		1	0.11527	0.01467	#0111						
+		1	0	0.01	#1011+#1101+#1110						
+		1	0.07403	0.01985	#1111						
+	Ser	1	0.55777	0.07548	#000						
+		1	0.0226	0.01055	#001+#010						
+		1	0.17596	0.04615	#100						
+		1	0.08054	0.02396	#011						
+		1	0.02258	0.0111	#101+#110						
+		1	0.14055	0.03243	#111						
+
+PEAK_MEASUREMENTS											
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY											
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION						
+OPTIONS											
+	OPT_NAME	OPT_VALUE

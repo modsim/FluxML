@@ -1,0 +1,400 @@
+#!/usr/bin/python
+# coding: utf-8
+
+#
+# Script zum Übertragen von Fluss- und Pool-Einstellungen
+# von HDF5 Dateien nach FML-Dateien
+# (c) 2015 Salah Azzouzi <info@13cflux.net> 
+# (c) 2010 Michael Weitzel <info@13cflux.net>
+#
+
+import xml.dom.minidom
+import getopt
+import sys
+import csv
+import flux
+
+try:
+	import h5py
+	have_h5py = True
+except ImportError:
+	have_h5py = False
+
+if (sys.hexversion>>16) < 0x204:
+	raise 'requiring Python 2.4 or newer'
+try:
+	# Python >= 2.5
+	import xml.etree.cElementTree as ET
+except ImportError:
+	try:
+		# Python >= 2.5
+		import xml.etree.ElementTree as ET
+	except ImportError:
+		try:
+			# ElementTree (effbot)
+			import elementtree.ElementTree as ET
+		except ImportError:
+			# ElementTree via libxml2
+			import lxml.etree as ET
+
+fmlNS = 'http://www.13cflux.net/fluxml'
+fwdNS = 'http://www.13cflux.net/fwdsim'
+
+# ANSI Escape Sequences Esc[Value1;...;ValueNm => Set Graphics Mode
+class msgType:
+    HEADER = '\033[33m'
+    WARNING = '\033[93m'
+    ERROR = '\033[93m'
+    BLUE = '\033[94m'
+    GREEN = '\033[32m'
+    WHITE = '\033[37m'
+    
+
+def usage():
+	global have_h5py
+	print(msgType.HEADER +'''"********************************************************************************"
+"********************************************************************************"
+"**  Setting Free Parameters Tool: (c) 2010 Michael Weitzel (stationary MFA)   **"
+"**                                (c) 2015 Salah Azzouzi (non-stationary MFA) **"
+"********************************************************************************"\n'''
++ msgType.WHITE + '''Syntax: '''
++ msgType.WHITE + '''setparameters''' 
++ msgType.GREEN + ''' <parameters>\n\n'''
+#                (-C <csvfile>|-F <fwdsimfile>|-H <hdf5file>) -l <num>
+#                  [-N <path to parameter names>] [-D <path to parameter values>]
+#                  [-i <FluxML input>] [-c <cfg>] [-o <FluxML output>] 
+" # General Parameters:"
++ msgType.WHITE + '''
+  -i/--in <file>          FluxML input file (stdin if omitted)
+  -o/--out <file>         name of FluxML (XML) output file (stdout if omitted)
+  -c/--configure <cfg>    FluxML configuration ("default" if omitted)
+  -l/--line <num>         Index of dataset to read (CSV, HDF5, >=1, default: 1)
+  -f/--force              Force; insert/replace the set of free fluxes and poolsizes
+                          even if they were not specified in the input FluxML
+  ''' + msgType.GREEN + 
+  "# Specific Parameters:"
+  + msgType.WHITE + '''
+  -C/--CSV <file>         CSV data file
+  -F/--FWD <file>         FWDSIM data file''')
+	if have_h5py:
+		print('''  -H/--HDF5D <file>       HDF5 data file
+  -D/--HDF5V <h5name>     HDF5 path to parameters values (default:'/parameter/data')
+  -N/--HDF5N <h5name>     HDF5 path to parameters names (default:'/parameter/names')\n''')
+	else:
+		print(msgType.WARNING+'''(python-h5py package is missing on this machine)'''+ msgType.WHITE)
+
+def parseFreeFluxesHDF5(hdf5file,line,h5vars,h5data):
+	line = line - 1
+	reader = h5py.File(hdf5file)
+	V = reader[h5vars][0]
+	data = list(zip(*reader[h5data]))
+	netflx = {}
+	xchflx = {}
+	psizes = {}
+
+	# some data consistency checks here
+	if line >= len(data):
+		flux.error('Line %i exceeds total available rows in HDF5 file (%u)'
+			% (line+1,len(data)))
+		sys.exit(1)
+	
+	row = data[line]
+	if len(row) != len(V):
+		flux.error('Number of parameters (%u) does not match number of data columns (%u)'
+			% (len(V), len(row)) );
+		sys.exit(1)
+
+	for i in range(0, len(V)):
+		sfxidx = len(V[i])-2
+		fnp = V[i][:sfxidx]
+		fns = V[i][sfxidx:]
+		fv = row[i]
+		
+		if fns == '.n':
+			netflx[fnp] = str(fv)
+		elif fns == '.x':
+ 			xchflx[fnp] = str(fv)
+		else: 
+			psizes[V[i]]=str(fv)
+
+	return (netflx,xchflx,psizes)
+
+def parseFreeFluxesFWDSIM(fwdfile):
+	global fwdNS
+	fwdfd = open(fwdfile, 'r')
+	fwdsim = ET.parse(fwdfd).getroot()
+
+	stoichiometry = fwdsim.find('{%s}stoichiometry' % fwdNS)
+	netflx = {}
+	xchflx = {}
+	psizes = {}
+	fluxlist = stoichiometry.getiterator('{%s}flux' % fwdNS)
+	for flux in fluxlist:
+		fname = flux.get('id')
+		for nx in flux:
+			if nx.get('type') != 'free':
+				continue
+			if nx.tag == ('{%s}net' % fwdNS):
+				netflx[fname] = nx.get('value')
+			elif nx.tag == ('{%s}xch' % fwdNS):
+				xchflx[fname] = nx.get('value')
+	
+	poollist = stoichiometry.getiterator('{%s}pool' % fwdNS)
+	for pool in poollist:
+		pname = pool.get('id')
+		if pool.get('type') != 'free':
+			continue 
+		psizes[pname] =pool.get('value')
+
+	fwdfd.close();
+	return (netflx,xchflx, psizes)
+
+def parseFreeFluxesCSV(csvfile,line):
+	csvfd = open(csvfile, 'r')
+	reader = csv.DictReader(csvfd,delimiter=';')
+	netflx = {}
+	xchflx = {}
+	psizes = {}
+	found = False
+	try:
+		i = 1
+		for row in reader:
+			if i == line:
+				for fn in row:
+					sfxidx = len(fn)-2
+					fnp = fn[:sfxidx]
+					fns = fn[sfxidx:]
+					fv = row[fn]
+					if fns == '.n':
+						netflx[fnp] = str(fv)
+					elif fns == '.x':
+						xchflx[fnp] = str(fv)
+					else:
+						psizes[fnp] =str(fv)
+				found = True
+				break
+			i = i+1
+	except csv.Error, e:
+		flux.error('CSV file line %d: %s' % (reader.line_num, e))
+		sys.exit(1)
+	if not found:
+		flux.error('Line %i exceeds total available rows in CSV file (%i)' % (line,i-1))
+		sys.exit(1)
+	csvfd.close()
+	return (netflx,xchflx,psizes)
+
+def patchFluxML(doc,cfgname,netflx,xchflx,psize,force):
+	global have_h5py
+	fluxml = doc.documentElement
+	cfglist = fluxml.getElementsByTagName('configuration')
+	success = False
+	patchnet = len(netflx)>0
+	patchxch = len(xchflx)>0
+	patchpsize=len(psize)>0
+	for cfg in cfglist:
+		if cfg.getAttribute('name') != cfgname:
+			continue
+
+		if force:
+			
+                        # S.Azzouzi; Fehlerbehaftete Anweisung behoben (index-out-of-range)
+                        # und der variables-tag </variables> war immer noch in fml vorhanden
+			# parameters = cfg.getElementsByTagName('variables')[0]
+			simulation = cfg.getElementsByTagName('simulation')[0]
+			parameters = simulation.getElementsByTagName('variables')					
+			if parameters.length > 0:                                       
+				for param in parameters:					
+					child = param.firstChild;
+					while child != None:
+						nchild = child.nextSibling
+						param.removeChild(child)
+						child = nchild
+                                simulation.removeChild(parameters[0]);
+
+                        parameters = simulation.appendChild(doc.createElement('variables'))
+			fnames = list(netflx.keys())
+			fnames.sort()
+			for fname in fnames:
+				fval = doc.createElement('fluxvalue')
+				fval.setAttribute('flux',fname)
+				fval.setAttribute('type','net')
+				# Pretty-printing für Arme
+				parameters.appendChild(doc.createTextNode("\n        "))
+				fval.appendChild(doc.createTextNode(netflx[fname]))
+				parameters.appendChild(fval)
+
+			fnames = list(xchflx.keys())
+			fnames.sort()
+			for fname in fnames:
+				fval = doc.createElement('fluxvalue')
+				fval.setAttribute('flux',fname)
+				fval.setAttribute('type','xch')
+				# Pretty-printing für Arme
+				parameters.appendChild(doc.createTextNode("\n        "))
+				fval.appendChild(doc.createTextNode(xchflx[fname]))
+				parameters.appendChild(fval)
+			pnames = list(psize.keys())
+			pnames.sort()
+			for pname in pnames:
+				fval = doc.createElement('poolvalue')
+                                fval.setAttribute('pool',pname)
+                                # Pretty-printing für Arme
+                                parameters.appendChild(doc.createTextNode("\n        "))
+                                fval.appendChild(doc.createTextNode(psize[pname]))
+                                parameters.appendChild(fval)
+
+			parameters.appendChild(doc.createTextNode("\n      "))
+			success = True
+		else:
+			fvlist = cfg.getElementsByTagName('fluxvalue')
+			found_all = True
+			for fv in fvlist:
+				fname = fv.getAttribute('flux')
+				net = (fv.getAttribute('type')=='net')
+				fval = None
+	
+				if net and not patchnet:
+					continue
+				elif not net and not patchxch:
+					continue
+	
+				try:
+					if net:
+						fval = netflx[fname]
+					else:
+						fval = xchflx[fname]
+				except KeyError:
+					flux.error('flux %s not found among free fluxes' % fname)
+					found_all = False
+				# alten Inhalt enfernen
+				for node in fv.childNodes:
+					fv.removeChild(node)
+				# neuen Inhalt anlegen
+				fv.appendChild(doc.createTextNode(fval))
+                        # S.Azzouzi: Poolgrößen.Erweiterung:
+                        pvlist = cfg.getElementsByTagName('poolvalue')
+                        for pv in pvlist:
+				pname = pv.getAttribute('pool')
+				pval = None
+	
+				if not patchpsize:
+					continue
+				try:
+                                        pval = psize[pname]
+				except KeyError:
+					pool.error('POOL %s not found among free parameters' % pname)
+					found_all = False
+				# alten Inhalt enfernen
+				for node in pv.childNodes:
+					pv.removeChild(node)
+				# neuen Inhalt anlegen
+				pv.appendChild(doc.createTextNode(pval))
+			if found_all: success = True
+		break
+	return success
+
+def main():
+	global have_h5py
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "H:F:C:i:o:c:l:fhD:N:",
+			['hdf=','fwd=','csv=','in=','out=','configure=',
+			 'line=','force','help','data=','names='])
+	except getopt.GetoptError:
+		flux.error('wrong command line options')
+		usage()
+		sys.exit(1)
+
+	opt_infmlfile  = None
+	opt_outfmlfile = None
+	opt_hdf5file   = None
+	opt_fwdfile    = None
+	opt_csvfile    = None
+	opt_line       = 1
+	opt_force      = False
+	opt_cfg        = 'default'
+	opt_h5vars     = '/parameter/names'
+	opt_h5data     = '/parameter/data'
+
+	for o,a in opts:
+		if o in ('-H','--hdf'):
+			opt_hdf5file = a
+		elif o in ('-F','--fwd'):
+			opt_fwdfile = a
+		elif o in ('-C','--csv'):
+			opt_csvfile = a
+		elif o in ('-i','--in'):
+			opt_infmlfile = a
+		elif o in ('-o','--out'):
+			opt_outfmlfile = a
+		elif o in ('-c','--configure'):
+			opt_cfg = a
+		elif o in ('-l','--line'):
+			try:
+				opt_line = int(a)
+				if opt_line < 1:
+					raise ValueError(opt_line)
+			except ValueError, e:
+				flux.error('parsing line number: %s' % e)
+				sys.exit(1)
+		elif o in ('-f','--force'):
+			opt_force = True
+		elif o in ('-h','--help'):
+			usage()
+			sys.exit(0)
+		elif o in ('-D','--data'):
+			opt_h5data = a
+		elif o in ('-N','--names'):
+			opt_h5vars = a
+		else:
+			flux.warning('unknown parameter: "%s"' % o)
+			usage()
+			sys.exit(1)
+
+	ninputs = int(opt_hdf5file != None) + int(opt_fwdfile != None) \
+			+ int(opt_csvfile != None)
+	if ninputs != 1:
+		flux.error('specify exactly one of the parameters -C,-F,-H together with a file name')
+		sys.exit(1)
+
+	# open FML input file (parameter -i)
+	infmlfd = sys.stdin
+	try:
+		if opt_infmlfile != None:
+			infmlfd = open(opt_infmlfile, 'r')
+	except:
+		flux.error('failed to open FML file "%s"' % opt_infmlfile)
+		sys.exit(1)
+
+	# open FML output file (parameter -o)
+	outfmlfd = sys.stdout;
+	try:
+		if opt_outfmlfile != None:
+			outfmlfd = open(opt_outfmlfile, 'w')
+	except:
+		flux.error('failed to open FML file "%s"' % opt_outfmlfile);
+		sys.exit(1)
+
+	if opt_hdf5file != None:
+		if not have_h5py:
+			flux.error('HDF5/H5PY support is not available on your machine')
+			sys.exit(1)
+		(netflx,xchflx,psize) = parseFreeFluxesHDF5(opt_hdf5file,opt_line,
+					opt_h5vars,opt_h5data)
+	elif opt_fwdfile != None:
+		(netflx,xchflx,psize) = parseFreeFluxesFWDSIM(opt_fwdfile)
+	elif opt_csvfile != None:
+		(netflx,xchflx,psize) = parseFreeFluxesCSV(opt_csvfile,opt_line)
+	
+	# FluxML per Minidom parsen (Kommentare, Formatierung erhalten)
+	fluxml_tree = xml.dom.minidom.parse(infmlfd)
+	if infmlfd != sys.stdin: infmlfd.close()
+	if patchFluxML(fluxml_tree,opt_cfg,netflx,xchflx,psize,opt_force):
+		# Ausgabe des gepatchten FluxML-Baums
+		outfmlfd.write(fluxml_tree.toxml(encoding='utf-8'))
+	else:
+		flux.error('failed on patching FluxML tree')
+		if outfmlfd != sys.stdout: outfmlfd.close()
+
+if __name__ == "__main__":
+	main()
+

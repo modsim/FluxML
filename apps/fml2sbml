@@ -1,0 +1,247 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+#
+# Simple FluxML to SBML converter.
+# Michael Weitzel <info@13cflux.net>
+#
+
+import sys
+from subprocess import *
+import getopt
+import re
+from xml.dom.minidom import getDOMImplementation
+import flux
+
+if (sys.hexversion>>16) < 0x204:
+	raise 'requiring Python 2.4 or newer'
+
+try:
+	# Python >= 2.5
+	import xml.etree.cElementTree as ET
+except ImportError:
+	try:
+		# Python >= 2.5
+		import xml.etree.ElementTree as ET
+	except ImportError:
+		try:
+			# ElementTree (effbot)
+			import elementtree.ElementTree as ET
+		except ImportError:
+			# ElementTree via libxml2
+			import lxml.etree as ET
+
+#
+# Flags (defaults)
+#
+fPretty = True
+fForcePythonPrettyPrint = False
+
+# XML-Lint (besseres pretty-printing)
+prg_xmllint = 'xmllint'
+
+fml_ns = 'http://www.13cflux.net/fluxml'
+sbml_ns = 'http://www.sbml.org/sbml/level2'
+xhtml_ns = 'http://www.w3.org/1999/xhtml'
+mathml_ns = 'http://www.w3.org/1998/Math/MathML'
+
+def usage():
+	print('''FML2SBML -- FluxML to SBML converter (c) Michael Weitzel 2010
+SYNTAX: fml2sbml [-i fml_file] [-o sbml_file]
+Options are:
+  -i|--in <fml>    FluxML input file (stdin if omitted)
+  -o|--out <sbml>  SBML output file (stdout if omitted)''')
+
+
+def convert(fml,config,sbmldoc):
+	global fml_ns
+	global sbml_ns
+	global xhtml_ns
+	
+	sbml = sbmldoc.documentElement
+
+	sbml.setAttribute('xmlns', sbml_ns)
+	sbml.setAttribute('level', '2')
+	sbml.setAttribute('version', '1')
+
+	model = sbmldoc.createElement('model')
+	sbml.appendChild(model)
+
+	notes = sbmldoc.createElement('notes')
+	html = sbmldoc.createElement('html')
+	html.setAttribute('xmlns',xhtml_ns)
+	p = sbmldoc.createElement('p')
+	p.appendChild(sbmldoc.createTextNode(
+		'converted from a FluxML document using fml2sbml'))
+	html.appendChild(p)
+	notes.appendChild(html)
+	model.appendChild(notes)
+
+	loc = sbmldoc.createElement('listOfCompartments')
+	compartment = sbmldoc.createElement('compartment')
+	compartment.setAttribute('id','cytoplasm')
+	compartment.setAttribute('name','cytoplasm')
+	compartment.setAttribute('constant','true')
+	compartment.setAttribute('size','1')
+	loc.appendChild(compartment)
+	model.appendChild(loc)
+
+	los = sbmldoc.createElement('listOfSpecies')
+	model.appendChild(los)
+	
+	lor = sbmldoc.createElement('listOfReactions')
+	model.appendChild(lor)
+
+	# FluxML parsing
+	reactionnetwork = fml.find('{%s}reactionnetwork' % fml_ns)
+	assert reactionnetwork != None
+	metabolitepools = reactionnetwork.find('{%s}metabolitepools' % fml_ns)
+	for pool in metabolitepools:
+		species = sbmldoc.createElement('species')
+		species.setAttribute('id', pool.get('id'))
+		species.setAttribute('compartment', 'cytoplasm')
+		annotation = pool.find('{%s}annotation' % fml_ns)
+		if annotation != None and annotation.get('name') == 'name':
+			species.setAttribute('name', annotation.text)
+		los.appendChild(species)
+
+	ri = 1
+	for react in reactionnetwork.getiterator('{%s}reaction' % fml_ns):
+		# eine dummy-Kinetik
+		kineticLaw = sbmldoc.createElement('kineticLaw')
+		math = sbmldoc.createElement('math')
+		math.setAttribute('xmlns',mathml_ns)
+		apply_ = sbmldoc.createElement('apply')
+		times_ = sbmldoc.createElement('times')
+		ci_ = sbmldoc.createElement('ci')
+		ci_.appendChild(sbmldoc.createTextNode('k%i' % ri))
+		apply_.appendChild(times_)
+		apply_.appendChild(ci_)
+		math.appendChild(apply_)
+		kineticLaw.appendChild(math)
+		loPar = sbmldoc.createElement('listOfParameters')
+		parameter = sbmldoc.createElement('parameter')
+		parameter.setAttribute('id','k%i' % ri)
+		parameter.setAttribute('value','0')
+		loPar.appendChild(parameter)
+		kineticLaw.appendChild(loPar)
+		# Reaktions-Index:
+		ri = ri + 1
+
+		reaction = sbmldoc.createElement('reaction')
+		reaction.setAttribute('id',react.get('id'))
+		reversible = react.get('bidirectional')
+		if reversible != None:
+			reaction.setAttribute('reversible', reversible)
+		annotation = react.find('{%s}annotation' % fml_ns)
+		if annotation != None and annotation.get('name') == 'name':
+			reaction.setAttribute('name', annotation.text)
+
+		loRea = sbmldoc.createElement('listOfReactants')
+		for reduct in react.getiterator('{%s}reduct' % fml_ns):
+			sr = sbmldoc.createElement('speciesReference')
+			sr.setAttribute('species', reduct.get('id'))
+			loRea.appendChild(sr)
+			ci_ = sbmldoc.createElement('ci')
+			ci_.appendChild(sbmldoc.createTextNode(reduct.get('id')))
+			apply_.appendChild(ci_)
+		reaction.appendChild(loRea)
+		loPro = sbmldoc.createElement('listOfProducts')
+		nPro = 0
+		for rproduct in react.getiterator('{%s}rproduct' % fml_ns):
+			sr = sbmldoc.createElement('speciesReference')
+			sr.setAttribute('species', rproduct.get('id'))
+			loPro.appendChild(sr)
+			nPro = nPro + 1
+		if nPro > 0:
+			reaction.appendChild(loPro)
+
+		reaction.appendChild(kineticLaw)
+		lor.appendChild(reaction)
+
+def main():
+	global fml_ns
+	global sbml_ns
+	global prg_xmllint
+
+	# Verfuegbarkeit von externen Programmen pruefen
+	prg_xmllint = flux.which(prg_xmllint)
+
+	try:
+		opts, args = getopt.getopt(sys.argv[1:],'i:o:c:',
+			['in=','out=','configure='])
+	except getopt.GetoptError:
+		usage()
+		sys.exit(1)
+
+	fml_file = sys.stdin
+	sbml_file = sys.stdout
+	config = 'default'
+
+	if len(args) > 0:
+		flux.error('too many arguments')
+		usage()
+		sys.exit(2)
+
+	for o,a in opts:
+		if o in ('-i','--in'):
+			fml_file = a
+		elif o in ('-o','--out'):
+			sbml_file = a
+		elif o in ('-c','--configure'):
+			config = a
+		else:
+			usage()
+			sys.exit(1)
+
+	if fml_file != sys.stdin and sbml_file != sys.stdout and fml_file == sbml_file:
+		flux.error('refusing to overwrite input file ("%s" for -i, -o)'
+			% fml_file)
+		sys.exit(1)
+
+	if fml_file != sys.stdin:
+		fml_file = open(fml_file,'r')
+	
+	if sbml_file != sys.stdout:
+		sbml_file = open(sbml_file,'w')
+
+	fml_tree = ET.parse(fml_file)
+	fml = fml_tree.getroot()
+	reNS = re.compile(r'\{(.*)\}.*')
+	match = reNS.match(fml.tag)
+	if not match:
+		flux.error('FluxML document lacks XML namespace')
+		sys.exit(1)
+	elif match.groups()[0] != fml_ns:
+		fml_ns = match.groups()[0]
+		flux.warning('adjusted parser for wrong FluxML namespace (%s)' % fml_ns)
+
+	impl = getDOMImplementation()
+	sbmldoc = impl.createDocument(None,'sbml',None)
+
+	convert(fml,config,sbmldoc)
+
+	if fPretty:
+		if fForcePythonPrettyPrint or not prg_xmllint:
+			# fallback verwenden; die erzeugten XML-Dateien sind
+			# allerdings ziemlich uebel: TEXT-Elemente werden mit
+			# zusaetzlichen Zeilenumbruechen und whitespace
+			# verseucht
+			if not fForcePythonPrettyPrint and len(args)>1:
+				flux.warning('falling back to Python/minidom for XML pretty printing')
+			sbml_file.write(sbmldoc.toprettyxml('  ',encoding='utf-8'))
+		else:
+			# xmllint produziert wesentlich bessere Ergebnisse
+			p = Popen([ prg_xmllint + ' --format -' ], shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+			(fromchild,tochild) = (p.stdout,p.stdin)
+			tochild.write(sbmldoc.toxml(encoding='utf-8'))
+			tochild.flush()
+			tochild.close()
+			sbml_file.write(fromchild.read())
+	else:
+		#xml.dom.ext.Print(sbmldoc,sbml_file,"UTF-8")
+		sbml_file.write(sbmldoc.toxml(encoding='utf-8'))
+
+if __name__ == "__main__":
+	main()
+

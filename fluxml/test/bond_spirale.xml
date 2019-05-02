@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<!DOCTYPE fluxml SYSTEM "fluxml.dtd">
+<fluxml>
+  <info>
+    <name>Spiralbeispiel mit Bondomeren</name>
+    <version>1.0</version>
+    <date>2005-07-16</date>
+    <comment>Standard-Sprialbeispiel mit Bonds statt C-Atomen</comment>
+  </info>
+
+  <reactionnetwork type="bondomer">
+    <metabolitepools>
+      <pool id="A" bonds="2"/>
+      <pool id="B" bonds="2"/>
+      <pool id="C" bonds="5"/>
+      <pool id="D" bonds="3"/>
+      <pool id="E" bonds="2"/>
+      <pool id="F" bonds="1"/>
+      <pool id="G" bonds="0"/>
+      <pool id="H" bonds="2"/>
+    </metabolitepools>
+
+    <reaction id="u">
+      <educt id="A" cfg="ab"/>
+      <product id="B" cfg="ab"/>
+    </reaction>
+
+    <reaction id="v">
+      <educt id="B" cfg="ab"/>
+      <educt id="E" cfg="cd"/>
+      <product id="C" cfg="ab?dc"/>
+    </reaction>
+
+    <reaction id="w">
+      <educt id="C" cfg="abcde"/>
+      <product id="D" cfg="cde"/>
+      <product id="F" cfg="a"/>
+    </reaction>
+
+    <reaction id="p">
+      <educt id="D" cfg="abc"/>
+      <product id="E" cfg="bc"/>
+      <product id="G" cfg=""/>
+    </reaction>
+
+    <reaction id="q">
+      <educt id="B" cfg="ab"/>
+      <product id="E" cfg="ab"/>
+    </reaction>
+
+    <reaction id="r">
+      <educt id="E" cfg="ab"/>
+      <product id="H" cfg="ab"/>
+    </reaction>
+
+  </reactionnetwork>
+
+  <!--
+  <constraints type="netto">
+    <math>
+      <declare>
+        <ci>blafasel</ci>
+	<apply>
+	  <eq/>
+	  <ci xref="w">w</ci>
+	  <ci xref="r">r</ci>
+	</apply>
+      </declare>
+    </math>
+  </constraints>
+  -->
+  <!--
+  <constraints type="netto">
+    <math>
+      <apply><eq/><ci>w</ci><ci>p</ci></apply>
+    </math>
+  </constraints>
+  -->
+
+  <configuration name="default">
+    <comment>Erste Test-Konfiguration für ein Bondomer-Netzwerk</comment>
+    <input pool="A" type="noncumulative">
+      <label cfg="11">1</label>
+    </input>
+    <fluxes>
+      <value flux="u"><net fixed="yes">1</net><xch>0</xch></value>
+      <value flux="q"><net fixed="yes">0.7</net><xch01 fixed="yes">0.4</xch01></value>
+      <value flux="v"><xch fixed="yes">0</xch></value>
+      <value flux="w"><xch fixed="yes">0</xch></value>
+      <value flux="p"><xch fixed="yes">0</xch></value>
+      <!-- <value flux="r"><xch>0</xch></value> -->
+    </fluxes>
+  </configuration>
+  
+</fluxml>

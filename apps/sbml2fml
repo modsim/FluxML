@@ -1,0 +1,339 @@
+#!/usr/bin/python
+# coding: utf-8
+import sys
+import getopt
+import re
+import os
+from subprocess import *
+from time import strftime, gmtime
+from xml.dom.minidom import getDOMImplementation
+import flux
+
+if (sys.hexversion>>16) < 0x204:
+	raise 'requiring Python 2.4 or newer'
+
+try:
+	# Python >= 2.5
+	import xml.etree.cElementTree as ET
+except ImportError:
+	try:
+		# Python >= 2.5
+		import xml.etree.ElementTree as ET
+	except ImportError:
+		try:
+			# ElementTree (effbot)
+			import elementtree.ElementTree as ET
+		except ImportError:
+			# ElementTree via libxml2
+			import lxml.etree as ET
+
+sbml_ns = ''
+fUseValidation = True
+
+# Namespace-Bezeichnung der FluxML-Dokumente:
+fXSD_xmlns = 'http://www.13cflux.net/fluxml'
+# XML Schema-Instance um eine Schema-Location anzugeben:
+fXSD_xmlns_xsi = 'http://www.w3.org/2001/XMLSchema-instance'
+# Schema Location: "<namespace> <ort>"
+fXSD_xsi_schemaLocation = 'http://www.13cflux.net/fluxml http://www.13cflux.net/xml-schema/fluxml.xsd'
+
+fCompressGZIP = False
+fUseValidation = False
+fPretty = False
+fForcePythonPrettyPrint = False
+
+# XML-Lint (besseres pretty-printing)
+prg_xmllint = 'xmllint'
+
+def usage():
+	print('''SBML2FML -- SBML to FluxML converter (c) Michael Weitzel 2008
+SYNTAX: sbml2fml [-pvyz] [-i sbml_file] [-o fml_file]
+Options are:
+  -i|--in <sbml>   SBML input file (stdin if omitted)
+  -o|--out <fml>   FluxML output file (stdout if omitted)
+  -p|--pretty      pretty-print XML (uses xmllint if possible)
+  -v|--valid       create XML which can be validated
+  -y|--pypretty    force pretty pretting via Python/minidom
+                   (otherwise, filtered through 'xmllint --format')
+  -z|--gzip        compress output file using GZIP compression''')
+
+def convert(sbml,doc,fluxml):
+	global sbml_ns
+	global fPretty
+
+	input_pools = {}
+	output_pools = []
+	noutputs = 0
+	species_id_map = {}
+
+	# Für Python 2.4 siehe cg2gml.py ...
+	model = sbml.getiterator('{%s}model' % sbml_ns).next()
+
+	try:
+		listOfSpecies = model.getiterator('{%s}listOfSpecies'
+				% sbml_ns).next()
+	except StopIteration:
+		flux.error('SBML model does not contain a reaction network')
+		sys.exit(1)
+
+	reactionnetwork = doc.createElement('reactionnetwork')
+	metabolitepools = doc.createElement('metabolitepools')
+	reactionnetwork.appendChild(metabolitepools)
+	fluxml.appendChild(reactionnetwork)
+
+	# altes SBML
+	los = listOfSpecies.getiterator('{%s}specie' % sbml_ns)
+	for specie in los:
+		pool = doc.createElement('pool')
+		pool.setAttribute('id',specie.get('name'))
+		#pool.setAttribute('atoms','1')
+		metabolitepools.appendChild(pool)
+		if specie.get('boundaryCondition') == 'true':
+			output_pools.append(specie.get('name'))
+		# zunächst ...
+		input_pools[specie.get('name')] = True
+
+	# modernes SBML
+	los = listOfSpecies.getiterator('{%s}species' % sbml_ns)
+	for species in los:
+		pool = doc.createElement('pool')
+		pool.setAttribute('id',species.get('id'))
+		#pool.setAttribute('atoms','1')
+		if species.get('name'):
+			annotation = doc.createElement('annotation')
+			annotation.setAttribute('name','name')
+			annotation.appendChild(
+				doc.createTextNode(species.get('name')))
+			pool.appendChild(annotation)
+		metabolitepools.appendChild(pool)
+		if species.get('boundaryCondition') == 'true':
+			output_pools.append(species.get('id'))
+		# zunächst ...
+		input_pools[species.get('id')] = True
+
+	listOfReactions = model.getiterator('{%s}listOfReactions'
+			% sbml_ns).next()
+	lor = listOfReactions.getiterator('{%s}reaction' % sbml_ns)
+	for react in lor:
+		reaction = doc.createElement('reaction')
+		reactionnetwork.appendChild(reaction)
+		reaction.setAttribute('id',react.get('id'))
+		if react.get('name'):
+			annotation = doc.createElement('annotation')
+			annotation.setAttribute('name','name')
+			annotation.appendChild(
+				doc.createTextNode(react.get('name')))
+			reaction.appendChild(annotation)
+		if react.get('reversible') == 'false':
+			reaction.setAttribute('bidirectional','false')
+
+		try:
+			loe = react.getiterator('{%s}listOfReactants' %
+					sbml_ns).next()
+		except StopIteration:
+			flux.error("reactions without educts found -- probably not a reaction network")
+			sys.exit(1)
+
+		# altes SBML
+		losref = loe.getiterator('{%s}specieReference' % sbml_ns)
+		for sref in losref:
+			reduct = doc.createElement('reduct')
+			reduct.setAttribute('id', sref.get('specie'))
+			reaction.appendChild(reduct)
+
+		# modernes SBML
+		losref = loe.getiterator('{%s}speciesReference' % sbml_ns)
+		for sref in losref:
+			reduct = doc.createElement('reduct')
+			reduct.setAttribute('id', sref.get('species'))
+			reaction.appendChild(reduct)
+
+		try:
+			lop = react.getiterator('{%s}listOfProducts' %
+					sbml_ns).next()
+		except StopIteration:
+			# Reaktionen ohne Produkte sind erlaubt (Abflüsse)
+			noutputs = noutputs + 1
+			continue
+
+		# altes SBML
+		losref = lop.getiterator('{%s}specieReference' % sbml_ns)
+		for sref in losref:
+			rproduct = doc.createElement('rproduct')
+			rproduct.setAttribute('id', sref.get('specie'))
+			#rproduct.setAttribute('cfg','A')
+			reaction.appendChild(rproduct)
+			if sref.get('specie') in input_pools:
+				del input_pools[sref.get('specie')]
+
+		# modernes SBML
+		losref = lop.getiterator('{%s}speciesReference' % sbml_ns)
+		for sref in losref:
+			rproduct = doc.createElement('rproduct')
+			rproduct.setAttribute('id', sref.get('species'))
+			#rproduct.setAttribute('cfg','A')
+			reaction.appendChild(rproduct)
+			if sref.get('species') in input_pools:
+				del input_pools[sref.get('species')]
+
+	if len(output_pools) > 0:
+		output_pools.sort()
+		for opool in output_pools:
+			reaction = doc.createElement('reaction')
+			reaction.setAttribute('id','%s_effl' % opool)
+			reactionnetwork.appendChild(reaction)
+			reduct = doc.createElement('reduct')
+			reduct.setAttribute('id',opool)
+			#reduct.setAttribute('cfg','A')
+			reaction.appendChild(reduct)
+	elif noutputs == 0:
+		flux.warning('network has no effluxes')
+
+	input_pools = list(input_pools.keys());
+	input_pools.sort()
+	if len(input_pools) > 0:
+		configuration = doc.createElement('configuration')
+		configuration.setAttribute('name','default')
+		fluxml.appendChild(configuration)
+		for ipool in input_pools:
+			input = doc.createElement('input')
+			input.setAttribute('pool',ipool)
+			input.setAttribute('type','isotopomer')
+			configuration.appendChild(input)
+	else:
+		flux.warning('network has no substrates')
+
+	# zum Schluss eine modeline fuer vim anhaengen:
+	if fPretty:
+		doc.appendChild(doc.createComment(
+			' vim:set shiftwidth=2:set expandtab: '))
+
+def main():
+	global sbml_ns
+	global fCompressGZIP, fUseValidation, fPretty, fForcePythonPrettyPrint
+	global fValid
+	global prg_xmllint
+
+	# Verfuegbarkeit von externen Programmen pruefen
+	prg_xmllint = flux.which(prg_xmllint)
+
+	# Optionen als String aufzeichnen
+	opt_list = []
+	opt_infile = None
+	opt_outfile = None
+
+	try:
+		opts, args = getopt.getopt(sys.argv[1:],"i:o:hpvyz",[
+			'in=','out=','help','pretty','valid',
+			'pypretty','gzip'])
+	except getopt.GetoptError:
+		flux.error('invalid parameters')
+		usage()
+		sys.exit(1)
+
+	for o, a in opts:
+		if o in ('-i','--in'):
+			opt_infile = a
+			opt_list.append('-i %s' % a)
+		elif o in ('-o','--out'):
+			opt_outfile = a
+			opt_list.append('-o %s' % a)
+		elif o in ('-h','--help'):
+			usage()
+			sys.exit(0)
+		elif o in ('-p','--pretty'):
+			fPretty = True
+			opt_list.append('-p')
+		elif o in ('-v','--valid'):
+			fUseValidation = True
+			opt_list.append('-v')
+		elif o in ('-y','--pypretty'):
+			fForcePythonPrettyPrint = True
+			opt_list.append('-y')
+		elif o in ('-z','--gzip'):
+			fCompressGZIP = True
+			opt_list.append('-z')
+
+	if len(args) > 0:
+		usage()
+		sys.exit(2)
+
+	if opt_infile != None and opt_outfile != None and opt_infile == opt_outfile:
+		flux.error('refusing to overwrite input file ("%s" for -i, -o)'
+			% opt_infile)
+		sys.exit(1)
+
+	infile = sys.stdin
+	outfile = sys.stdout
+	if opt_infile:
+		infile = open(opt_infile,'r')
+
+	sbml_tree = ET.parse(infile)
+	sbml = sbml_tree.getroot()
+
+	assert sbml.tag.endswith('sbml')
+        if sbml.tag.startswith('{'):
+                sbml_ns = sbml.tag[1:sbml.tag.rindex('}')]
+        assert sbml.tag == '{%s}sbml' % sbml_ns
+
+	# fluxml anlegen
+	# XML/FluxML-Dokument initialisieren
+	impl = getDOMImplementation()
+	fmldoc = impl.createDocument(None, 'fluxml', None)
+	fmldoc.documentElement.setAttribute('xmlns',
+			fXSD_xmlns);
+	if fUseValidation:
+		fmldoc.documentElement.setAttribute('xmlns:xsi',
+				fXSD_xmlns_xsi)
+		fmldoc.documentElement.setAttribute('xsi:schemaLocation',
+				fXSD_xsi_schemaLocation)
+
+	fluxml = fmldoc.documentElement
+	convert(sbml,fmldoc,fluxml)
+
+	# Aufruf-Flags in einem Kommentar aufzeichnen
+	opt_list.sort()
+	user = ''
+	if 'USER' in os.environ:
+		user = 'by user %s ' % os.environ['USER']
+	fluxml.insertBefore(
+		fmldoc.createComment(
+			' SBML2FML:\nThis network specification has been converted from a SBML file\n'
+			+ '%sat %s.\nThe following flags were used for conversion: {%s}.\n'
+			% (user,strftime('%Y-%m-%d %H:%M:%S',gmtime()),', '.join(opt_list))),
+		fluxml.firstChild)
+
+	if opt_outfile:
+		if fCompressGZIP:
+			if not args[1].endswith('.gz'):
+				flux.warning('(compressed) output file does not end with ".gz"')
+			outfile = gzip.open(opt_outfile,'w')
+		else:
+			outfile = open(opt_outfile,'w')
+
+	if fPretty:
+		#xml.dom.ext.PrettyPrint(fmldoc,outfile,"UTF-8")
+		if fForcePythonPrettyPrint or not prg_xmllint:
+			# fallback verwenden; die erzeugten XML-Dateien sind
+			# allerdings ziemlich uebel: TEXT-Elemente werden mit
+			# zusaetzlichen Zeilenumbruechen und whitespace
+			# verseucht
+			if not fForcePythonPrettyPrint and len(args)>1:
+				flux.warning('falling back to Python/minidom for XML pretty printing')
+			outfile.write(fmldoc.toprettyxml('  ',encoding='utf-8'))
+		else:
+			# xmllint produziert wesentlich bessere Ergebnisse
+			p = Popen([ prg_xmllint + ' --format -' ], shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+			(fromchild,tochild) = (p.stdout,p.stdin)
+
+			tochild.write(fmldoc.toxml(encoding='utf-8'))
+			tochild.flush()
+			tochild.close()
+			outfile.write(fromchild.read())
+	else:
+		#xml.dom.ext.Print(fmldoc,outfile,"UTF-8")
+		outfile.write(fmldoc.toxml(encoding='utf-8'))
+
+if __name__ == "__main__":
+	main()
+

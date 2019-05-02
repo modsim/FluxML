@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fluxml xmlns="http://www.13cflux.net/fluxml">
+  <info>
+    <name>Antoniewicz test network</name>
+    <version>1.0</version>
+    <date>2007-10-09 00:00:00</date>
+    <comment>Network from the EMU paper</comment>
+  </info>
+  <reactionnetwork>
+    <metabolitepools>
+      <pool atoms="3" id="A"/>
+      <pool atoms="3" id="B"/>
+      <pool atoms="2" id="C"/>
+      <pool atoms="3" id="D"/>
+      <pool atoms="1" id="E"/>
+      <pool atoms="3" id="F"/>
+      <!-- <pool id="X" atoms="4"/> -->
+    </metabolitepools>
+    <reaction id="v1">
+      <reduct cfg="abc" id="A"/>
+      <rproduct cfg="abc" id="B"/>
+    </reaction>
+    <reaction id="v2">
+      <reduct cfg="abc" id="B"/>
+      <rproduct cfg="abc" id="D"/>
+    </reaction>
+    <reaction id="v3">
+      <reduct cfg="abc" id="D"/>
+      <rproduct cfg="abc" id="B"/>
+    </reaction>
+    <reaction id="v4">
+      <reduct cfg="abc" id="B"/>
+      <rproduct cfg="bc" id="C"/>
+      <rproduct cfg="a" id="E"/>
+    </reaction>
+    <!-- -->
+    <reaction bidirectional="false" id="v5">
+      <reduct cfg="abc" id="B"/>
+      <reduct cfg="de" id="C"/>
+      <rproduct cfg="bcd" id="D"/>
+      <rproduct cfg="a" id="E"/>
+      <rproduct cfg="e" id="E"/>
+    </reaction>
+    <!-- -->
+    <!--
+    <reaction id="v5_1">
+      <reduct id="B" cfg="abc"/>
+      <reduct id="C" cfg="de"/>
+      <rproduct id="X" cfg="bcda"/>
+      <rproduct id="E" cfg="e"/>
+    </reaction>
+    <reaction id="v5_2">
+      <reduct id="X" cfg="bcda"/>
+      <rproduct id="D" cfg="bcd"/>
+      <rproduct id="E" cfg="a"/>
+    </reaction>
+    -->
+    <reaction bidirectional="false" id="v6">
+      <reduct cfg="abc" id="D"/>
+      <rproduct cfg="abc" id="F"/>
+    </reaction>
+    <reaction id="efflux_E">
+      <reduct cfg="a" id="E"/>
+    </reaction>
+    <reaction id="efflux_F">
+      <reduct cfg="abc" id="F"/>
+    </reaction>
+  </reactionnetwork>
+  <configuration name="default">
+    <comment>Eine Belegung für die Input-Pools</comment>
+    <input pool="A" type="isotopomer">
+      <!-- <label cfg="010">1</label> -->
+      <label cfg="010">1.0</label>
+    </input>
+    <constraints>
+      <net>
+        <textual>v2 &gt;= v3; v1=100;</textual>
+      </net>
+      <xch>
+        <textual>v2=0; v3=0; v5=0; v6=0; v4=0</textual>
+      </xch>
+    </constraints>
+    <measurement>
+      <model stationary="true">
+        <labelingmeasurement>
+          <group id="m1" scale="one">
+            <textual>F#M0,1,2,3</textual>
+          </group>
+        </labelingmeasurement>
+      </model>
+      <data>
+        <datum id="m1" stddev="0.003" weight="0">0.0001</datum>
+        <datum id="m1" stddev="0.003" weight="1">0.8008</datum>
+        <datum id="m1" stddev="0.003" weight="2">0.1983</datum>
+        <datum id="m1" stddev="0.003" weight="3">0.0009</datum>
+      </data>
+    </measurement>
+    <!-- <simulation type="full" method="cumomer"> -->
+    <!-- <simulation type="auto" method="cumomer"> -->
+    <!-- <simulation type="full" method="emu"> -->
+    <!-- <simulation type="auto" method="emu"> -->
+    <!-- <simulation type="explicit" method="emu"> -->
+    <simulation>
+      <!-- <objects>
+        <obj pool="F" range="2"/>
+      </objects> -->
+      <variables>
+        <fluxvalue flux="v2" type="net">110</fluxvalue>
+        <fluxvalue flux="v4" type="net">20</fluxvalue>
+      </variables>
+    </simulation>
+  </configuration>
+</fluxml>
+<!-- vim:set shiftwidth=2:set expandtab: -->

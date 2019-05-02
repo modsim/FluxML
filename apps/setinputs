@@ -1,0 +1,196 @@
+#!/usr/bin/python3
+# coding: utf-8
+# 
+# Copyright (c) 2018 13CFLUX2 team <info@13cflux.net>
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# 
+
+import getopt
+import sys
+import csv
+import xml.dom.minidom as dom
+
+
+class InputSpec:
+    def __init__(self, cfg, purity, value):
+        self.cfg = cfg
+        self.purity = purity
+        self.value = value
+
+
+def usage():
+    print('''SETINPUTS -- copy input pool specification from a CSV file to FluxML
+SYNTAX: setinputs (-i <file> -C <file> -o <fluxml>) [-c <cfg>]
+  -i <file>   input FluxML file (stdin if omitted)
+  -o <file>   output FluxML file (stdout if omitted)
+  -C <file>   CSV data file
+  -c <cfg>    name of the configuration (default: 'default')in FluxML file''')
+
+
+def clear_fluxml_tree(doc, cfgname):
+    cfglist = doc.getElementsByTagName('configuration')
+    for cfg in cfglist:
+        if cfg.getAttribute('name') != cfgname:
+            continue
+        else:
+            inputs = cfg.getElementsByTagName('input')
+            for input in inputs:
+                cfg.removeChild(input)
+    return clear_node(doc)
+
+
+def clear_node(node):
+    clean_tree = ''
+    for line in node.toxml().splitlines():
+        if line.strip() != '':
+            clean_tree = clean_tree + line.strip()
+
+    inp = dom.parseString(clean_tree)
+    return inp
+
+
+def patch_fml(doc, cfgname, inputs):
+    doc = clear_fluxml_tree(doc, cfgname)
+    cfglist = doc.getElementsByTagName('configuration')
+    success = False
+
+    for cfg in cfglist:
+        if cfg.getAttribute('name') != cfgname:
+            continue
+        else:
+            # this is the right configuration
+            success = True
+
+            for input in inputs:
+                pool = input[0]
+                input_node = doc.createElement('input')
+                input_node.setAttribute('pool', pool)
+                input_node.setAttribute('type', 'isotopomer')
+                if len(input[1]) >= 1 and input[1][0].cfg != '':
+                    # input_node.appendChild(doc.createTextNode('\n      '))
+                    for cfg_spec in input[1]:
+                        label_node = doc.createElement('label')
+                        label_node.setAttribute('cfg', cfg_spec.cfg)
+                        label_node.setAttribute('purity', cfg_spec.purity)
+                        label_node.appendChild(doc.createTextNode(cfg_spec.value))
+                        # input_node.appendChild(doc.createTextNode('\n      '))
+                        input_node.appendChild(label_node)
+                    # input_node.appendChild(doc.createTextNode('\n    '))
+                if len(cfg.getElementsByTagName('measurement')) > 0:
+                    cfg.insertBefore(input_node, cfg.getElementsByTagName('measurement')[0])
+                elif len(cfg.getElementsByTagName('simulation')) > 0:
+                    cfg.insertBefore(input_node, cfg.getElementsByTagName('simulation')[0])
+                else:
+                    cfg.appendChild(input_node)
+
+    if not success:
+        print('configuration "%s" doesn\'t exists!', cfgname)
+    return clear_node(doc)
+
+
+def import_csv(opt_csvfile):
+    reader = csv.reader(open(opt_csvfile, 'r'))
+
+    pool = None
+    input_specs = []
+
+    inputs = []
+
+    for row in reader:
+        # skip header / comments
+        if not row[0].startswith('#'):
+
+            # save collected data and flush
+            if not row[0] == '' and pool is not None:
+                inputs.append([pool, input_specs])
+                pool = None
+                input_specs = []
+
+            if row[0] != '':
+                pool = row[0]
+            input_specs.append(InputSpec(cfg=row[1], purity=row[2], value=row[3]))
+    if pool is not None:
+        inputs.append([pool, input_specs])
+
+    return inputs
+
+
+def main():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "i:C:o:c:h",
+                                   ['input=', 'csv=', 'output=', 'configure=', 'help='])
+    except getopt.GetoptError:
+        print('Error: wrong command line options')
+        usage()
+        sys.exit(1)
+
+    opt_csvfile = None
+    opt_fml_in = None
+    opt_fml_out = None
+    opt_cfg = 'default'
+
+    for o, a in opts:
+        if o in ('-i', '--input'):
+            opt_fml_in = a
+        elif o in ('-C', '--csv'):
+            opt_csvfile = a
+        elif o in ('-o', '--output'):
+            opt_fml_out = a
+        elif o in ('-c', '--configure'):
+            opt_cfg = a
+        elif o in ('-h', '--help'):
+            usage()
+            sys.exit(0)
+        else:
+            print('Warning: unknown parameter: "%s"' % o)
+            usage()
+            sys.exit(1)
+
+    if opt_csvfile is None:
+        print('Error: specify the parameters -C together with a file name')
+        sys.exit(1)
+
+    # read in original fml file
+    instream = sys.stdin
+    # try:
+    if opt_fml_in is not None:
+        instream = open(opt_fml_in, 'r')
+    fluxml_tree = dom.parse(instream)
+
+    if instream != sys.stdin:
+        instream.close()
+
+    # open FML output file (parameter -o)
+    outstream = sys.stdout
+
+    # read in csv file
+    if opt_csvfile is not None:
+        inputs = import_csv(opt_csvfile)
+        fluxml_tree = patch_fml(fluxml_tree, opt_cfg, inputs)
+
+    if opt_fml_out is not None:
+        outstream = open(opt_fml_out, 'wb')
+
+    pretty_xml = '\n'.join([line for line in fluxml_tree.toprettyxml(indent='  ').split('\n') if line.strip()])
+    outstream.write(pretty_xml.encode(encoding='UTF-8'))
+
+
+if __name__ == "__main__":
+    main()

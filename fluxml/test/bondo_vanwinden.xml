@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+<!DOCTYPE fluxml SYSTEM "fluxml.dtd">
+<fluxml>
+  <info>
+    <name>Bondomer-Netzwerk von Winden</name>
+    <version>1.0</version>
+    <date>2005-07-16</date>
+    <comment>Beispiel-Bondomer-Netzwerk aus dem van Winden-Paper</comment>
+  </info>
+
+  <reactionnetwork type="bondomer">
+    <metabolitepools>
+      <pool id="glc" bonds="5"/> <!-- glucose -->
+      <pool id="tre" bonds="2"/> <!-- trealose -->
+      <pool id="g6p" bonds="5"/> <!-- glucose 6-phosphate -->
+      <pool id="p5p" bonds="4"/> <!-- pentose 5-phosphate (lumped pool of r5p, ru5p, x5p) -->
+      <pool id="his" bonds="2"/> <!-- histidine -->
+      <pool id="man" bonds="2"/> <!-- mannitol -->
+      <pool id="f6p" bonds="5"/> <!-- fructose 6-phosphate -->
+      <pool id="e4p" bonds="3"/> <!-- erythrose 4-phosphate -->
+      <pool id="ery" bonds="1"/> <!-- erythritol -->
+      <pool id="tp" bonds="2"/>  <!-- triose phosphate (lumped pool of g3p, dhap, bpg, 2pg, 3pg, pep) -->
+      <pool id="s7p" bonds="6"/> <!-- sedoheptulose 7-phosphate -->
+      <pool id="tyr" bonds="2"/> <!-- tyrosine -->
+      <pool id="phe" bonds="2"/> <!-- phenylalanine -->
+      
+      <pool id="tp_out" bonds="2"/> <!-- Ein Abfluß für tp -->
+    </metabolitepools>
+    
+    <reaction id="v1">
+      <educt id="glc" cfg=""/>
+      <product id="g6p" cfg=""/>
+    </reaction>
+
+    <reaction id="v2">
+      <educt id="g6p" cfg=""/>
+      <product id="f6p" cfg=""/>
+    </reaction>
+
+     <reaction id="v3">
+      <educt id="f6p" cfg=""/>
+      <product id="tp" cfg=""/>
+      <product id="tp" cfg=""/>
+    </reaction>
+
+    <reaction id="v4">
+      <educt id="tp" cfg=""/>
+      <product id="tp_out" cfg=""/>
+    </reaction>
+
+    <reaction id="v5">
+      <educt id="g6p" cfg=""/>
+      <product id="p5p" cfg=""/>
+    </reaction>
+
+    <reaction id="v6">
+      <educt id="tp" cfg=""/>
+      <educt id="s7p" cfg=""/>
+      <product id="p5p" cfg=""/>
+      <product id="p5p" cfg=""/>
+    </reaction>
+
+    <reaction id="v7">
+      <educt id="f6p" cfg=""/>
+      <educt id="e4p" cfG=""/>
+      <product id="tp" cfg=""/>
+      <product id="s7p" cfg=""/>
+    </reaction>
+
+    <reaction id="v8">
+      <educt id="f6p" cfg=""/>
+      <educt id="tp" cfg=""/>
+      <product id="p5p" cfg=""/>
+      <product id="e4p" cfg=""/>
+    </reaction>
+
+    <reaction id="v9">
+      <educt id="g6p" cfg=""/>
+      <product id="tre" cfg=""/>
+    </reaction>
+
+    <reaction id="v10">
+      <educt id="f6p" cfg=""/>
+      <product id="man" cfg=""/>
+    </reaction>
+
+    <reaction id="v11">
+      <educt id="tp" cfg=""/>
+      <product id="phe" cfg=""/>
+    </reaction>
+
+    <reaction id="v12">
+      <educt id="p5p" cfg=""/>
+      <product id="his" cfg=""/>
+    </reaction>
+
+    <reaction id="v13">
+      <educt id="e4p" cfg=""/>
+      <product id="ery" cfg=""/>
+      <product id="tyr" cfg=""/>
+    </reaction>
+  </reactionnetwork>
+
+<!--
+  <constraints type="netto">
+   <math>
+     <declare>
+       <ci>scrambler_net</ci>
+       <apply>
+         <eq/>
+	 <ci>v4</ci>
+	 <ci>v5</ci>
+       </apply>
+     </declare>
+   </math>
+  </constraints>
+-->
+<!--
+  <constraints type="exchange">
+   <math>
+     <declare>
+       <ci>scrambler_xch</ci>
+       <apply>
+         <eq/>
+	 <ci>v4</ci>
+	 <ci>v5</ci>
+       </apply>
+     </declare>
+   </math>
+  </constraints>
+-->
+  <configuration name="default">
+    <comment>Eine Belegung für die Input-Pools</comment>
+    <input pool="glc"/>
+    <fluxes>
+      <value flux="v1"><net>1</net></value>
+    </fluxes>
+  </configuration>
+</fluxml>
+

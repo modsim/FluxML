@@ -1,0 +1,567 @@
+#!/usr/bin/python
+# coding: utf-8
+
+#
+# Script zum Übertragen von Messdaten
+# von FWDSIM/FluxML/CSV Dateien nach fml-Dateien
+# (c) 2011 Michael Weitzel <info@13cflux.net>
+#
+
+import getopt
+import sys
+import os
+import csv
+import re
+import flux
+import xml.dom.minidom as DOM
+import subprocess
+
+if (sys.hexversion>>16) < 0x204:
+	raise 'requiring Python 2.4 or newer'
+
+try:
+	# Python >= 2.5
+	import xml.etree.cElementTree as ET
+except ImportError:
+	try:
+		# Python >= 2.5
+		import xml.etree.ElementTree as ET
+	except ImportError:
+		try:
+			# ElementTree (effbot)
+			import elementtree.ElementTree as ET
+		except ImportError:
+			# ElementTree via libxml2
+			import lxml.etree as ET
+
+fwdsim_ns = 'http://www.13cflux.net/fwdsim'
+
+def usage():
+	print '''SETMEASUREMENTS -- FWDSIM, FluxML or CSV to FluxML filter (c) S. Miebach 2011
+SYNTAX: setmeasurements (-i <file> -F <file>|-X <file>|-C <file> -o <fluxml>)
+               [-c <cfg>] [-f <str>] [-l <str>] [-R <num>] -[A <num>]
+  -i <file>   input FluxML file (stdin if omitted)
+  -o <file>   output FluxML file (stdout if omitted)
+  -F <file>   source FWDSIM file
+  -X <file>   source FluxML file
+  -C <file>   CSV data file
+  -R <num>    relative error of measurement data ([1..0], default=0.05)
+  -A <num>    absolute error of measurement data ([1..0], default=0.01)
+  -c <cfg>    name of the configuration (default: 'default')in FluxML file
+  -d a/l/f    delete all (a) existing labeling (l) and flux measurements (f) (standard= '')
+  -f R        filter fluxes by using the regular expression R
+              (default = no fluxes are imported)
+  -l R        filter measurements by using the regular expression R
+              (default = all measurements are imported)'''
+
+def xlateUnknownsIntoIsotopomer(cfg_val_pairs):
+	# keine Atome im Metaboliten?
+	if len(cfg_val_pairs) == 0:
+		return (cfg_val_pairs,False)
+
+	# transformierbar nur falls Länge eine Zweiterpotenz
+	if not flux.isPwr2(len(cfg_val_pairs)):
+		return (cfg_val_pairs,False)
+
+	# Atom-Maske aufbauen
+	mask = [False]*len(cfg_val_pairs[0][0])
+	vals = []
+	for cv in cfg_val_pairs:
+		if type(cv[1]) == list:
+			vals.append(float(cv[1][len(cv[1])-1]))
+		else:
+			vals.append(float(cv[1]))
+		c = cv[0]
+		for i in range(len(mask)):
+			mask[i] = mask[i] or (c[i] == '1')
+
+	# Aktive Atome zählen
+	active = 0
+	for b in mask:
+		if b: active += 1
+
+	# transformierbar nur falls Länge gleich 2^active
+	if len(cfg_val_pairs) != (1<<active):
+		return (cfg_val_pairs,False)
+
+	vals = flux.cumulate(vals,-1)
+	ncvp = []
+	i = 0
+	for cv in cfg_val_pairs:
+		# string -> array
+		c = [ c for c in cv[0] ]
+		for b in range(len(c)):
+			if not mask[b]:
+				assert c[b] == 'x'
+			else:
+				if c[b] == 'x': c[b] = '0'
+		ncvp.append([''.join(c),vals[i]])
+		i = i+1
+	return ncvp
+
+def emitLabelingMeasurement(opt_fwdsimfile, filter, cumomer_sim, errorRel, errorAbs):
+	global fwdsim_ns
+	label = []
+
+	fwdsim_tree = ET.parse(open(opt_fwdsimfile, 'r'))
+	root = fwdsim_tree.getroot()
+
+	poollist = root.getiterator('{%s}pool' % fwdsim_ns)
+	for pool in poollist:
+		name = pool.get('id')
+		valuelist = pool.getiterator('{%s}value' % fwdsim_ns)
+		cfg_val_pairs = []
+
+		fquery = None
+		if len(filter) == 0:
+			fquery = name
+		else:
+			for fltre in filter:
+				if re.match(fltre,name):
+					fquery = name
+					break
+		if not fquery:
+			continue
+
+		for value in valuelist:
+
+			cfg = value.get('cfg')
+			emus = [ value.text.strip() ]
+
+			for child in value:
+				assert child.tag == ('{%s}sep' % fwdsim_ns)
+				emus.append(child.tail.strip())
+			val = emus
+
+			if cumomer_sim:
+				cfg_val_pairs.append([cfg, val])
+			else:
+				if cfg.isdigit():
+					idx = []
+					for i in range(0,len(cfg)+1):
+						idx.append("%i" % (i))
+					name_spec =  '%s#M%s' % (name,','.join(idx))
+					emus_errors = []
+					for e in emus:
+						emus_errors.append(str(float(e)*errorRel + errorAbs))
+					label.append([name_spec, emus, emus_errors])
+
+		# sortieren, dabei cfgs vergleichen (reverse(cfg) via cfg[::-1])
+		cfg_val_pairs.sort(lambda p1,p2: cmp(p1[0][::-1],p2[0][::-1]),reverse=True)
+
+		if cfg_val_pairs != []:
+			cfg_val_pairs = xlateUnknownsIntoIsotopomer(cfg_val_pairs)
+
+		for val in cfg_val_pairs:
+			label.append([name + '#' + val[0], [str(val[1])], [str(val[1]*errorRel + errorAbs)]])
+	return label
+
+
+def emitFluxMeasurement(opt_fwdsimfile, filter, errorRel, errorAbs):
+	global fwdsim_ns
+	fluxes = []
+
+	fwdsim_tree = ET.parse(open(opt_fwdsimfile, 'r'))
+	root = fwdsim_tree.getroot()
+
+	def netxch2fwdbwd(net,xch):
+		return (str(float(xch)+max(float(net),0.)),str(float(xch)+max(-float(net),0.)))
+
+	fluxlist = root.getiterator('{%s}flux' % fwdsim_ns)
+
+	for flux in fluxlist:
+		fname = flux.get('id')
+
+		n_type = None
+		x_type = None
+		n_val = None
+		x_val = None
+		n_expr = None
+		x_expr = None
+
+		fquery = None
+		if len(filter) == 0:
+			pass
+			#fquery = fname
+		else:
+			for fltre in filter:
+
+				if re.match(fltre,fname):
+					fquery = fname
+					break
+		if not fquery:
+			continue
+
+		for nx in flux:
+			net_tag = '{%s}net' % fwdsim_ns
+			xch_tag = '{%s}xch' % fwdsim_ns
+			assert nx.tag == net_tag or nx.tag == xch_tag
+			if nx.tag == net_tag:
+				n_type = nx.get('type')[0]
+				n_val = nx.get('value')
+				n_expr = nx.text
+			else:
+				x_type = nx.get('type')[0]
+				x_val = nx.get('value')
+				x_expr = nx.text
+
+		(val1,val2) = (n_val,x_val)
+		fluxes.append([fname,val1,str(float(val1)*errorRel + errorAbs)])
+	return fluxes
+
+def clearFluxmlTree(doc, cfgname, opt_delete):
+	cfglist = doc.getElementsByTagName('configuration')
+	for cfg in cfglist:
+		if cfg.getAttribute('name') != cfgname:
+			continue
+		else:
+			#Prüfung, ob alle knoten für measurement, labelingmeasurement, fluxmeasurement und data exisitieren
+			if(len(cfg.getElementsByTagName('measurement'))==0):
+				measurement = doc.createElement('measurement')
+				model = doc.createElement('model')
+				labelingmeasurement = doc.createElement('labelingmeasurement')
+				fluxmeasurement = doc.createElement('fluxmeasurement')
+				data = doc.createElement('data')
+				model.appendChild(doc.createTextNode('\n        '))
+				model.appendChild(labelingmeasurement)
+				model.appendChild(doc.createTextNode('\n        '))
+				model.appendChild(fluxmeasurement)
+				model.appendChild(doc.createTextNode('\n      '))
+				measurement.appendChild(doc.createTextNode('\n      '))
+				measurement.appendChild(model)
+				measurement.appendChild(doc.createTextNode('\n      '))
+				measurement.appendChild(data)
+				measurement.appendChild(doc.createTextNode('\n    '))
+				cfg.insertBefore(measurement,cfg.getElementsByTagName('simulation')[0])
+				cfg.insertBefore(doc.createTextNode('\n    '),cfg.getElementsByTagName('simulation')[0])
+
+			labelingmeasurement = cfg.getElementsByTagName('labelingmeasurement')[0]
+			labels = cfg.getElementsByTagName('group')
+			
+			fluxmeasurement = cfg.getElementsByTagName('fluxmeasurement')[0]
+			
+			fluxes = cfg.getElementsByTagName('netflux')
+			data = cfg.getElementsByTagName('data')[0]
+			datums = cfg.getElementsByTagName('datum')
+
+			#löschen aller bisherigen flussmessungen
+			if opt_delete == 'f' or opt_delete == 'a':
+				for f in fluxes:
+					fluxmeasurement.removeChild(f)
+					for d in datums:
+						if d.getAttribute('id') == f.getAttribute('id'):
+							data.removeChild(d)
+					
+
+			#löschen aller bisherigen markierungsmessungen
+			if opt_delete == 'l' or opt_delete == 'a':
+				for f in labels:
+					labelingmeasurement.removeChild(f)
+					for d in datums:
+						if d.getAttribute('id') == f.getAttribute('id'):
+							data.removeChild(d)
+	return cleanNode(doc)
+
+def cleanNode(node):
+	cleanTree = ''
+	for line in node.toxml().splitlines():
+		if line.strip() != '':
+			cleanTree = cleanTree + line.strip()
+	
+	input = DOM.parseString(cleanTree)
+	return input
+	
+def patchFMLwithFWD(doc, cfgname, label, fluxes, liste_inputs, cumomer_sim, opt_delete):
+	doc = clearFluxmlTree(doc, cfgname, opt_delete)
+	cfglist = doc.getElementsByTagName('configuration')
+	success = False
+
+	for cfg in cfglist:
+		if cfg.getAttribute('name') != cfgname:
+			continue
+		else:
+			success = True
+			
+			labelingmeasurement = cfg.getElementsByTagName('labelingmeasurement')[0]
+			fluxmeasurement = cfg.getElementsByTagName('fluxmeasurement')[0]
+			data = cfg.getElementsByTagName('data')[0]
+
+			max_labelingmeasurement = len(cfg.getElementsByTagName('group'))
+
+			index = 0
+			for i in range(0,len(label)):
+				substrate = False
+				for inp in liste_inputs:
+					if inp == label[i][0][0:label[i][0].find('#')]:
+						substrate = True
+				if substrate:
+					continue
+
+				index = index + 1
+				group = doc.createElement('group')
+				textual = doc.createElement('textual')
+				textual.appendChild(doc.createTextNode(label[i][0]))
+
+				group.setAttribute('id','group_' + "%06d" % (index+ max_labelingmeasurement))
+				group.setAttribute('scale','one')
+				group.appendChild(doc.createTextNode('\n            '))
+				group.appendChild(textual)
+				group.appendChild(doc.createTextNode('\n          '))
+
+				labelingmeasurement.appendChild(doc.createTextNode('\n          '))
+				labelingmeasurement.appendChild(group)
+
+				for r in range(0,len(label[i][1])):
+					datum = doc.createElement('datum')
+					datum.setAttribute('stddev', label[i][2][r])
+					datum.setAttribute('id', 'group_' + "%06d" % (index + max_labelingmeasurement))
+					if cumomer_sim:
+						datum.setAttribute('row', str(r+1))
+					else:
+						datum.setAttribute('weight', str(r))
+					datum.appendChild(doc.createTextNode(label[i][1][r]))
+					data.appendChild(doc.createTextNode('\n        '))
+					data.appendChild(datum)
+
+			for i in range(0,len(fluxes)):
+				netflux = doc.createElement('netflux')
+				textual = doc.createElement('textual')
+				textual.appendChild(doc.createTextNode(str(fluxes[i][0])))
+
+				netflux.setAttribute('id', 'fm_' + fluxes[i][0])
+
+				netflux.appendChild(doc.createTextNode('\n            '))
+				netflux.appendChild(textual)
+				netflux.appendChild(doc.createTextNode('\n          '))
+
+				fluxmeasurement.appendChild(doc.createTextNode('\n          '))
+				fluxmeasurement.appendChild(netflux)
+
+				datum = doc.createElement('datum')
+				datum.setAttribute('id', 'fm_' + fluxes[i][0])
+				datum.setAttribute('stddev', fluxes[i][2])
+				datum.appendChild(doc.createTextNode(fluxes[i][1]))
+				data.appendChild(doc.createTextNode('\n        '))
+				data.appendChild(datum)
+
+			labelingmeasurement.appendChild(doc.createTextNode('\n        '))
+			fluxmeasurement.appendChild(doc.createTextNode('\n        '))
+			data.appendChild(doc.createTextNode('\n      '))
+
+	if not success:
+		print 'configuration "' + cfgname + '" doesn\'t exists!'
+	return cleanNode(doc)
+
+def importCSV(opt_csvfile):
+	reader = csv.reader(open(opt_csvfile,'r'))
+
+	label = []
+	fluxes = []
+	daten = []
+	stddev = []
+	analyte = ''
+
+	for row in reader:
+		#Kopfzeile oder Kommentare überspringen
+		if not row[0].startswith('#'):
+
+			#alle bisherigen Daten speichern und zwischenspeicher zurücksetzen
+			if not row[0]=='' and not daten==[]:
+				if analyte.startswith('net:'):
+					fluxes.append([analyte[4:len(analyte)], row[1], row[2]])
+				else:
+					label.append([analyte, daten, stddev])
+				daten = []
+				stddev = []
+
+			if row[0]!='':
+				analyte = row[0]
+			daten.append(row[1])
+			stddev.append(row[2])
+
+	return label, fluxes
+
+def patchFMLwithFML(doc, cfgname, opt_fluxmlfile, opt_delete, filter_f, filter_l):
+	fml_tree = DOM.parse(open(opt_fluxmlfile, 'r'))
+
+	measurement_new = fml_tree.getElementsByTagName('measurement')[0]
+	if measurement_new.getAttribute('xmlns')!='':
+		measurement_new.removeAttribute('xmlns')
+	fluxml = clearFluxmlTree(doc.documentElement, cfgname, opt_delete)
+
+	cfglist = fluxml.getElementsByTagName('configuration')
+	success = False
+
+	for cfg in cfglist:
+		if cfg.getAttribute('name') != cfgname:
+			continue
+		else:
+			success = True
+
+			#Prüfen ob in FLUXML file markierungsmessungen sind
+			labelingmeasurement_new = fluxml.getElementsByTagName('labelingmeasurement')[0]
+			labelingmeasurement_old = fml_tree.getElementsByTagName('group')
+			
+			labeldata_new = fluxml.getElementsByTagName('data')[0]
+			labeldata_old = fml_tree.getElementsByTagName('datum')
+			
+			for child in labelingmeasurement_old:
+			
+				name =  child.getElementsByTagName('textual')[0].firstChild.nodeValue
+				
+				fquery = None
+				if len(filter_l) == 0:
+					fquery = name
+				else:
+					for fltre in filter_l:
+						if re.match(fltre,name):
+							fquery = name
+							break
+				if not fquery:
+					continue
+					
+				labelingmeasurement_new.appendChild(child)
+				for labeldata in labeldata_old:
+					if child.getAttribute('id') == labeldata.getAttribute('id'):
+						labeldata_new.appendChild(labeldata)
+						labeldata_new.appendChild(doc.createTextNode('\n        '))
+				
+			#Prüfen ob in FLUXML file überhaupt flussmessungen vorhanden sind
+			fluxmeasurement_new = fluxml.getElementsByTagName('fluxmeasurement')[0]
+			fluxmeasurement_old = fml_tree.getElementsByTagName('netflux')
+			
+			fluxdata_new = fluxml.getElementsByTagName('data')[0]
+			fluxdata_old = fml_tree.getElementsByTagName('datum')
+			
+			for child in fluxmeasurement_old:
+			
+				name = child.getAttribute('id')
+				
+				fquery = None
+				if len(filter_f) == 0:
+					fquery = name
+				else:
+					for fltre in filter_f:
+						if re.match(fltre,name):
+							fquery = name
+							break
+				if not fquery:
+					continue
+				#hinzufügen der spezifikationen
+				fluxmeasurement_new.appendChild(child)
+				for fluxdata in fluxdata_old:
+					#nur flussdaten hinzufügen über "id"
+					if child.getAttribute('id') == fluxdata.getAttribute('id'):
+						fluxdata_new.appendChild(fluxdata)
+	return cleanNode(fluxml)
+
+def main():
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "i:F:X:C:R:A:o:d:c:f:l:h",
+			['input=','fwd=','fml=','csv=','error_rel=','error_abs=',
+			 'output=','delete=','configure=','filter_flux=','filter_label=','help='])
+	except getopt.GetoptError:
+		flux.error('wrong command line options')
+		usage()
+		sys.exit(1)
+
+	opt_fwdsimfile = None
+	opt_fluxmlfile = None
+	opt_csvfile    = None
+	opt_FML_IN     = None
+	opt_FML_OUT    = None
+	opt_cfg        = 'default'
+	opt_errorRel   = 0.05
+	opt_errorAbs   = 0.01
+	opt_delete     = ''
+
+	filter_f = []
+	filter_l = []
+
+	for o,a in opts:
+		if o in ('-i','--input'):
+			opt_FML_IN = a
+		elif o in ('-F','--fwd'):
+			opt_fwdsimfile = a
+		elif o in ('-X','--fml'):
+			opt_fluxmlfile = a
+		elif o in ('-C','--csv'):
+			opt_csvfile = a
+		elif o in ('-R','--error_rel'):
+			opt_errorRel = float(a)
+		elif o in ('-A','--error_abs'):
+			opt_errorAbs = float(a)
+		elif o in ('-o','--output'):
+			opt_FML_OUT = a
+		elif o in ('-d','--delete'):
+			opt_delete = a
+		elif o in ('-c','--configure'):
+			opt_cfg = a
+		elif o in ('-f','--filter_flux'):
+			filter_f.append(a)
+		elif o in ('-l','--filter_label'):
+			filter_l.append(a)
+		elif o in ('-h','--help'):
+			usage()
+			sys.exit(0)
+		else:
+			flux.warning('unknown parameter: "%s"' % o)
+			usage()
+			sys.exit(1)
+
+	ninputs = int(opt_fwdsimfile != None) + int(opt_fluxmlfile != None) + int(opt_csvfile != None)
+	if ninputs != 1:
+		flux.error('specify exactly one of the parameters -C,-F,-X together with a file name')
+		sys.exit(1)
+
+	#Einlesen der originalen FML-Datei
+	instream = sys.stdin
+	#try:
+	if opt_FML_IN != None:
+		instream = open(opt_FML_IN, 'r')
+	fluxml_tree = DOM.parse(instream)
+
+	# Simulationstyp: Cumomer oder EMU
+	fluxml = fluxml_tree.documentElement
+	simulation = fluxml.getElementsByTagName('simulation')[0]
+	cumomer_sim = None
+	if simulation.getAttribute('method') == 'emu':
+		cumomer_sim = False
+	elif simulation.getAttribute('method') == 'cumomer':
+		cumomer_sim = True
+
+	liste_inputs = []
+	inputs = fluxml.getElementsByTagName('input')
+	for input in inputs:
+		liste_inputs.append(input.getAttribute('pool'))
+
+	if instream != sys.stdin: instream.close()
+
+	# open FML output file (parameter -o)
+	outstream = sys.stdout;
+
+	if opt_fwdsimfile != None:
+		label = emitLabelingMeasurement(opt_fwdsimfile, filter_l,cumomer_sim, opt_errorRel, opt_errorAbs)
+		fluxes = emitFluxMeasurement(opt_fwdsimfile, filter_f, opt_errorRel, opt_errorAbs)
+		fluxml_tree = patchFMLwithFWD(fluxml_tree, opt_cfg, label, fluxes, liste_inputs, cumomer_sim, opt_delete)
+
+	#Import von Messdaten aus einer FML-Datei
+	if opt_fluxmlfile != None:
+		fluxml_tree = patchFMLwithFML(fluxml_tree,opt_cfg,opt_fluxmlfile, opt_delete, filter_f, filter_l)
+
+	#Einlesen von Messdaten aus einer CSV-Datei
+	if opt_csvfile != None:
+		(label, fluxes) = importCSV(opt_csvfile)
+		fluxml_tree = patchFMLwithFWD(fluxml_tree, opt_cfg, label, fluxes, liste_inputs, cumomer_sim, opt_delete)
+
+	# Ausgabe des gepatchten FluxML-Baums
+	if opt_FML_OUT != None:
+		outstream = open(opt_FML_OUT, 'w')
+	
+	outstream.write(fluxml_tree.toxml(encoding='utf-8'))
+	if opt_FML_OUT != None:
+		p=subprocess.Popen('xmllint --format --output ' + opt_FML_OUT + ' ' + opt_FML_OUT,shell=True)
+
+if __name__ == "__main__":
+	main()
+

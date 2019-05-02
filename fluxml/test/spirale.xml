@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<!DOCTYPE fluxml SYSTEM "fluxml.dtd">
+<fluxml>
+  <info>
+    <name>Standard-Spirale</name>
+    <version>1.0</version>
+    <date>2006-10-30</date>
+    <comment>Standard-Mini-Sprialnetzwerk</comment>
+  </info>
+
+  <reactionnetwork type="isotopomer">
+    <metabolitepools>
+      <pool id="A" atoms="2"/>
+      <pool id="B" atoms="2"/>
+      <pool id="C" atoms="4"/>
+      <pool id="D" atoms="3"/>
+      <pool id="E" atoms="2"/>
+      <pool id="F" atoms="1"/>
+      <pool id="G" atoms="1"/>
+      <!-- <pool id="H" atoms="2"/> ist isoliert -->
+    </metabolitepools>
+
+    <reaction id="v1">
+      <educt id="A" cfg="AB"/>
+      <product id="B" cfg="AB"/>
+    </reaction>
+
+    <reaction id="v2">
+      <educt id="B" cfg="AB"/>
+      <educt id="E" cfg="CD"/>
+      <product id="C" cfg="ABCD"/>
+    </reaction>
+
+     <reaction id="v3">
+      <educt id="B" cfg="AB"/>
+      <product id="E" cfg="AB"/>
+    </reaction>
+
+    <reaction id="v4">
+      <educt id="C" cfg="ABCD"/>
+      <product id="D" cfg="BCD"/>
+      <product id="F" cfg="A"/>
+    </reaction>
+
+    <reaction id="v5">
+      <educt id="D" cfg="ABC"/>
+      <product id="E" cfg="AB"/>
+      <product id="G" cfg="C"/>
+    </reaction>
+
+    <reaction id="v6">
+      <educt id="E" cfg="AB"/>
+    </reaction>
+    
+    <reaction id="v7">
+      <educt id="G" cfg="A"/>
+    </reaction>
+    
+    <reaction id="v8">
+      <educt id="F" cfg="A"/>
+    </reaction>
+
+  </reactionnetwork>
+
+<!--
+  <constraints type="netto">
+   <math>
+     <declare>
+       <ci>scrambler_net</ci>
+       <apply>
+         <eq/>
+	 <ci>v4</ci>
+	 <ci>v5</ci>
+       </apply>
+     </declare>
+   </math>
+  </constraints>
+-->
+<!--
+  <constraints type="exchange">
+   <math>
+     <declare>
+       <ci>scrambler_xch</ci>
+       <apply>
+         <eq/>
+	 <ci>v4</ci>
+	 <ci>v5</ci>
+       </apply>
+     </declare>
+   </math>
+  </constraints>
+-->
+  <configuration name="default">
+    <comment>Eine Belegung für die Input-Pools</comment>
+    <input pool="A" type="noncumulative">
+      <label cfg="00">0.5</label>
+      <label cfg="01">0.2</label>
+      <label cfg="10">0.2</label>
+      <label cfg="11">0.1</label>
+    </input>
+    <fluxes>
+      <value flux="v1"><net>1</net></value>
+      <!--
+      <value flux="v2"><net>0.5</net><xch fixed="yes">0</xch></value>
+      <value flux="v3"><net>0.2</net><xch>0.1</xch></value>
+      <value flux="v4"><net>0.7</net></value>
+      <value flux="v5"><net>1</net></value>
+      <value flux="v6"><net>0.1</net></value>
+      <value flux="v7"><net>0.1</net></value>
+      <value flux="v8"><net>0.1</net></value>
+      -->
+    </fluxes>
+  </configuration>
+</fluxml>
+

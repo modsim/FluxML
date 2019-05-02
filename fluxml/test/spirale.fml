@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf8"?>
+<fluxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.13cflux.net/fluxml http://www.13cflux.net/fluxml" xmlns="http://www.13cflux.net/fluxml">
+  <info>
+    <name>Standard-Spirale</name>
+    <version>1.0</version>
+    <date>2006-10-30 21:31:12</date>
+    <comment>Standard-Mini-Sprialnetzwerk</comment>
+  </info>
+
+  <reactionnetwork type="isotopomer">
+    <metabolitepools>
+      <pool id="A" atoms="2"/>
+      <pool id="B" atoms="2"/>
+      <pool id="C" atoms="4"/>
+      <pool id="D" atoms="3"/>
+      <pool id="E" atoms="2"/>
+      <pool id="F" atoms="1"/>
+      <pool id="G" atoms="1"/>
+      <!-- <pool id="H" atoms="2"/> --> <!-- ist isoliert -->
+    </metabolitepools>
+
+    <reaction id="v1">
+      <reduct id="A" cfg="AB"/>
+      <rproduct id="B" cfg="AB"/>
+    </reaction>
+
+    <reaction id="v2">
+      <reduct id="B" cfg="AB"/>
+      <reduct id="E" cfg="CD"/>
+      <rproduct id="C" cfg="ABCD"/>
+    </reaction>
+
+     <reaction id="v3">
+      <reduct id="B" cfg="AB"/>
+      <rproduct id="E" cfg="AB"/>
+    </reaction>
+
+    <reaction id="v4">
+      <reduct id="C" cfg="ABCD"/>
+      <rproduct id="D" cfg="BCD"/>
+      <rproduct id="F" cfg="A"/>
+    </reaction>
+
+    <reaction id="v5">
+      <reduct id="D" cfg="ABC"/>
+      <rproduct id="E" cfg="AB"/>
+      <rproduct id="G" cfg="C"/>
+    </reaction>
+
+    <reaction id="v6">
+      <reduct id="E" cfg="AB"/>
+    </reaction>
+    
+    <reaction id="v7">
+      <reduct id="G" cfg="A"/>
+    </reaction>
+    
+    <reaction id="v8" bidirectional="false">
+      <reduct id="F" cfg="A"/>
+    </reaction>
+
+  </reactionnetwork>
+  <!--
+  <constraints>
+   <netto>
+     <math>
+       <declare>
+       <ci>scrambler_net</ci>
+         <apply>
+           <eq/>
+  	 <ci>v4</ci>
+  	 <ci>v5</ci>
+         </apply>
+       </declare>
+     </math>
+   </netto>
+   <exchange><math/></exchange>
+  </constraints>
+  -->
+  <configuration name="default_old">
+    <comment>Eine Belegung für die Input-Pools</comment>
+    <input pool="A" type="isotopomer">
+      <label cfg="00">0.5</label>
+      <label cfg="01">0.2</label>
+      <label cfg="10">0.2</label>
+      <label cfg="11">0.1</label>
+    </input>
+
+    <constraints>
+      <netto>
+        <textual>v1=1;v8=0.2 </textual>
+      </netto>
+      <exchange>
+	<textual>v2=0.04;v3=0.03;v4=0.02;v5=0.01;</textual> 
+      </exchange>
+    </constraints>
+
+    <!--
+
+    Alternative 1:
+    <measurement>
+      <xi:include href="messung.mm" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+    </measurement>
+
+    Alternative 2:
+    <measurement xmlns:xi="http://www.w3.org/2001/XInclude">
+      <xi:include href="messung.mm"/>
+    </measurement>
+
+    Alternative 3:
+    <xi:include href="messung.mm" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+    -->
+
+    <xi:include href="spirale.mm" xmlns:xi="http://www.w3.org/2001/XInclude">
+      <xi:fallback xmlns:xi="http://www.w3.org/2001/XInclude"/>
+    </xi:include>
+
+    <simulation type="subset" method="cumomer">
+      <!-- full := Alle Cumomere / Isotopomere;
+           subset := Spezifikation in Cumomer-Kurznotation;
+	   auto := Gemäß Messmodell -->
+      <objects>
+        <obj pool="A" range="1,2"/>
+	<obj pool="B"/>
+      </objects>
+      <variables>
+	      <!--	      <var flux="v8" type="net"/>
+	      <var flux="v2" type="xch"/>
+	      <var flux="v3" type="xch"/>
+	      <var flux="v5" type="xch"/> -->
+      </variables>
+    </simulation>
+
+  </configuration>
+  <configuration name="default">
+    <comment>Eine Belegung für die Input-Pools</comment>
+    <input pool="A" type="isotopomer">
+      <label cfg="00">0.5</label>
+      <label cfg="01">0.2</label>
+      <label cfg="10">0.2</label>
+      <label cfg="11">0.1</label>
+    </input>
+
+    <constraints>
+      <netto>
+        <textual>v1=1;v3=0.2 </textual>
+      </netto>
+      <exchange>
+	<textual>v2=10;v5=0.01;</textual> 
+      </exchange>
+    </constraints>
+
+    <simulation type="full" method="cumomer">
+      <!-- full := Alle Cumomere / Isotopomere;
+           subset := Spezifikation in Cumomer-Kurznotation;
+	   auto := Gemäß Messmodell -->
+      <variables>
+        <fluxvalue flux="v3" type="xch">0.03</fluxvalue>
+        <fluxvalue flux="v4" type="xch">0.02</fluxvalue>
+        <poolsize pool="C" lo="0.01" inc="0.01" hi="0.5">0.2</poolsize>
+      </variables>
+    </simulation>
+
+  </configuration>
+</fluxml>
+<!-- vim:set shiftwidth=2:set expandtab: -->

@@ -1,0 +1,618 @@
+<?xml version="1.0"?>
+<!--
+ Wird [<!ENTITY % use_mathml_dtd "INCLUDE">] mit in den DOCTYPE aufgenommen,
+ kann der MathML-Teil von xmllint per MathML2-DTD validiert werden.
+
+ DTD-Validierung mit: "xmllint \-\-valid coryne.xml"
+
+ Achtung: Gleichzeitig geht Xerces ins Internet und besorgt die MathML-DTD(?)
+          von www.w3.org! Xerces arbeitet also nicht wie xmllint mit einem
+	  lokalen Spiegel der DTD!
+-->
+<!-- <!DOCTYPE fluxml SYSTEM "fluxml.dtd" [<!ENTITY % use_mathml_dtd "INCLUDE">]> -->
+<!DOCTYPE fluxml SYSTEM "fluxml.dtd">
+<fluxml>
+
+  <!-- Informationen zum Dokument -->
+  <info>
+    <name>PPP, TCA, Trallalla</name>
+    <version>1.0</version>
+    <date>2006-03-08</date>
+    <comment>
+    Konvertiert aus FTBL-Datei.
+    
+    Eckdaten:
+    Anzahl der Pools        : 50
+    Anzahl der Reaktionen   : 54 (3 input, 14 output, 37 innere)
+    Anzahl der Gleichungen  : 2
+    Anzahl der Ungleichungen: 12
+    
+    Dimension der Matrizen auf den Cumomer-Ebenen:
+    Ebene 1: 145; ff: 0.021974;   6 SCCs: {1:1x,2:2x,3:1x,44:1x,93:1x}
+    Ebene 2: 281; ff: 0.009397;  86 SCCs: {1:33x,2:19x,3:22x,4:8x,6:1x,32:1x,35:1x,39:1x}
+    Ebene 3: 310; ff: 0.007680; 134 SCCs: {1:56x,2:28x,3:38x,4:10x,12:1x,32:1x}
+    Ebene 4: 207; ff: 0.010502; 107 SCCs: {1:51x,2:20x,3:30x,4:5x,6:1x}
+    Ebene 5:  81; ff: 0.024844;  47 SCCs: {1:27x,2:7x,3:12x,4:1x}
+    Ebene 6:  16; ff: 0.109375;  11 SCCs: {1:8x,2:1x,3:2x}
+    Ebene 7:   1; ff: 1.000000;   1 SCCs: {1:1x}
+
+    Folgende Fluesse koennen als irreversibel angenommen werden:
+    ppp1, tcc1, tcc2, tcc3, tcc4
+    falls nötig:
+    emp5, emp6, emp2, ppp2 (im Notfall: gs1, gs2)
+    </comment>
+  </info>
+
+  <reactionnetwork type="isotopomer">
+    <metabolitepools>
+      <pool id="AcCoA" atoms="2"/>
+      <pool id="Ace" atoms="2"/>
+      <pool id="AcN" atoms="6"/>
+      <pool id="AKG" atoms="5"/>
+      <pool id="Asp" atoms="4"/>
+      <pool id="BM_AcCoA" atoms="2"/>
+      <pool id="BM_Asp" atoms="4"/>
+      <pool id="BM_CO2" atoms="1"/>
+      <pool id="BM_Ery4P" atoms="4"/>
+      <pool id="BM_Fru6P" atoms="6"/>
+      <pool id="BM_Glc6P" atoms="6"/>
+      <pool id="BM_Glut" atoms="5"/>
+      <pool id="BM_Glyc" atoms="3"/>
+      <pool id="BM_P5P" atoms="5"/>
+      <pool id="BM_PEP" atoms="3"/>
+      <pool id="BM_PGA" atoms="3"/>
+      <pool id="BM_Pyr" atoms="3"/>
+      <pool id="Cit" atoms="6"/>
+      <pool id="CO2" atoms="1"/>
+      <pool id="CO2_out" atoms="1"/>
+      <pool id="D23PG6" atoms="6"/>
+      <pool id="DGL6P" atoms="6"/>
+      <pool id="DHAP" atoms="3"/>
+      <pool id="Ery4P" atoms="4"/>
+      <pool id="Fru6P" atoms="6"/>
+      <pool id="FruBP" atoms="6"/>
+      <pool id="FUM" atoms="4"/>
+      <pool id="GA3P" atoms="3"/>
+      <pool id="Glc1_in" atoms="6"/>
+      <pool id="Glc2_in" atoms="6"/>
+      <pool id="Glc3_in" atoms="6"/>
+      <pool id="Glc6P" atoms="6"/>
+      <pool id="Glut" atoms="5"/>
+      <pool id="GlyOx" atoms="2"/>
+      <pool id="ICit" atoms="6"/>
+      <pool id="m13PGA" atoms="3"/>
+      <pool id="m2PGA" atoms="3"/>
+      <pool id="m3PGA" atoms="3"/>
+      <pool id="MAL" atoms="4"/>
+      <pool id="OAA" atoms="4"/>
+      <pool id="PEP" atoms="3"/>
+      <pool id="PG6" atoms="6"/>
+      <pool id="PYR" atoms="3"/>
+      <pool id="Rib5P" atoms="5"/>
+      <pool id="RNA" atoms="5"/>
+      <pool id="Rul5P" atoms="5"/>
+      <pool id="Sed7P" atoms="7"/>
+      <pool id="Succ" atoms="4"/>
+      <pool id="SucCoA" atoms="4"/>
+      <pool id="Xyl5P" atoms="5"/>
+    </metabolitepools>
+
+    <!-- Mixture Input -->
+
+    <reaction id="cons_Glc1">
+      <educt id="Glc1_in" cfg="ABCDEF"/>
+      <product id="Glc6P" cfg="ABCDEF"/>
+    </reaction>
+    
+    <reaction id="cons_Glc2">
+      <educt id="Glc2_in" cfg="ABCDEF"/>
+      <product id="Glc6P" cfg="ABCDEF"/>
+    </reaction>
+
+    <reaction id="cons_Glc3">
+      <educt id="Glc3_in" cfg="ABCDEF"/>
+      <product id="Glc6P" cfg="ABCDEF"/>
+    </reaction>
+
+    <!-- Embden Meyerhof Parnas Pathway -->
+
+    <reaction id="emp1">
+      <educt id="Glc6P" cfg="ABCDEF"/>
+      <product id="Fru6P" cfg="ABCDEF"/>
+    </reaction>
+    
+    <reaction id="emp2">
+      <educt id="Fru6P" cfg="ABCDEF"/>
+      <product id="FruBP" cfg="ABCDEF"/>
+    </reaction>
+
+    <reaction id="emp3">
+      <educt id="FruBP" cfg="ABCDEF"/>
+      <product id="DHAP" cfg="ABC"/>
+      <product id="GA3P" cfg="DEF"/>
+    </reaction>
+
+    <reaction id="emp4">
+      <educt id="DHAP" cfg="ABC"/>
+      <product id="GA3P" cfg="CBA"/>
+    </reaction>
+    
+    <reaction id="emp5">
+      <educt id="GA3P" cfg="ABC"/>
+      <product id="m13PGA" cfg="ABC"/>
+    </reaction>
+
+    <reaction id="emp6">
+      <educt id="m13PGA" cfg="ABC"/>
+      <product id="m3PGA" cfg="ABC"/>
+    </reaction>
+
+    <reaction id="emp7">
+      <educt id="m3PGA" cfg="ABC"/>
+      <product id="m2PGA" cfg="ABC"/>
+    </reaction>
+    
+    <reaction id="emp8">
+      <educt id="m2PGA" cfg="ABC"/>
+      <product id="PEP" cfg="ABC"/>
+    </reaction>
+
+    <reaction id="emp9">
+      <educt id="PEP" cfg="ABC"/>
+      <product id="PYR" cfg="ABC"/>
+    </reaction>
+
+    <!-- Entner-Doudoroff-Pathway -->
+
+    <reaction id="edp1">
+      <educt id="Glc6P" cfg="ABCDEF"/>
+      <product id="DGL6P" cfg="ABCDEF"/>
+    </reaction>
+    
+    <reaction id="edp2">
+      <educt id="DGL6P" cfg="ABCDEF"/>
+      <product id="PG6" cfg="ABCDEF"/>
+    </reaction>
+
+    <reaction id="edp3">
+      <educt id="PG6" cfg="ABCDEF"/>
+      <product id="D23PG6" cfg="ABCDEF"/>
+    </reaction>
+
+    <reaction id="edp4">
+      <educt id="D23PG6" cfg="ABCDEF"/>
+      <product id="GA3P" cfg="ABC"/>
+      <product id="PYR" cfg="DEF"/>
+    </reaction>
+
+    <!-- Pentose Phosphate Pathway -->
+
+    <reaction id="ppp1">
+      <educt id="PG6" cfg="ABCDEF"/>
+      <product id="CO2" cfg="A"/>
+      <product id="Rul5P" cfg="BCDEF"/>
+    </reaction>
+    
+    <reaction id="ppp2">
+      <educt id="Rul5P" cfg="ABCDE"/>
+      <product id="Xyl5P" cfg="ABCDE"/>
+    </reaction>
+
+    <reaction id="ppp3">
+      <educt id="Rul5P" cfg="ABCDE"/>
+      <product id="Rib5P" cfg="ABCDE"/>
+    </reaction>
+
+    <reaction id="ppp4">
+      <educt id="Xyl5P" cfg="ABCDE"/>
+      <educt id="Ery4P" cfg="abcd"/>
+      <product id="GA3P" cfg="CDE"/>
+      <product id="Fru6P" cfg="ABabcd"/>
+    </reaction>
+    
+    <reaction id="ppp5">
+      <educt id="Xyl5P" cfg="ABCDE"/>
+      <educt id="Rib5P" cfg="abcde"/>
+      <product id="Sed7P" cfg="ABabcde"/>
+      <product id="GA3P" cfg="CDE"/>
+    </reaction>
+
+    <reaction id="ppp6">
+      <educt id="GA3P" cfg="ABC"/>
+      <educt id="Sed7P" cfg="abcdefg"/>
+      <product id="Ery4P" cfg="defg"/>
+      <product id="Fru6P" cfg="abcABC"/>
+    </reaction>
+
+    <reaction id="ppp_P5P">
+      <educt id="Rul5P" cfg="ABCDE"/>
+      <product id="RNA" cfg="ABCDE"/>
+    </reaction>
+
+    <!-- Tricarboxylic Acid Cycle -->
+
+    <reaction id="tcc1">
+      <educt id="PYR" cfg="ABC"/>
+      <product id="AcCoA" cfg="BC"/>
+      <product id="CO2" cfg="A"/>
+    </reaction>
+    
+    <reaction id="tcc2">
+      <educt id="OAA" cfg="ABCD"/>
+      <educt id="AcCoA" cfg="ab"/>
+      <product id="Cit" cfg="DCBAba"/>
+    </reaction>
+
+    <reaction id="tcc3">
+      <educt id="Cit" cfg="ABCDEF"/>
+      <product id="AcN" cfg="ABCDEF"/>
+    </reaction>
+
+    <reaction id="tcc4">
+      <educt id="AcN" cfg="ABCDEF"/>
+      <product id="ICit" cfg="ABCDEF"/>
+    </reaction>
+    
+    <reaction id="tcc5">
+      <educt id="ICit" cfg="ABCDEF"/>
+      <product id="AKG" cfg="ABCEF"/>
+      <product id="CO2" cfg="D"/>
+    </reaction>
+
+    <reaction id="tcc6">
+      <educt id="AKG" cfg="ABCDE"/>
+      <product id="SucCoA" cfg="BCDE"/>
+      <product id="CO2" cfg="A"/>
+    </reaction>
+
+    <reaction id="tcc7">
+      <educt id="SucCoA" cfg="ABCD"/>
+      <product id="Succ" cfg="ABCD"/>
+    </reaction>
+    
+    <reaction id="tcc8a">
+      <educt id="Succ" cfg="ABCD"/>
+      <product id="FUM" cfg="ABCD"/>
+    </reaction>
+
+    <reaction id="tcc8b">
+      <educt id="Succ" cfg="ABCD"/>
+      <product id="FUM" cfg="DCBA"/>
+    </reaction>
+
+    <reaction id="tcc9">
+      <educt id="FUM" cfg="ABCD"/>
+      <product id="MAL" cfg="DCBA"/>
+    </reaction>
+    
+    <reaction id="tcc10">
+      <educt id="MAL" cfg="ABCD"/>
+      <product id="OAA" cfg="ABCD"/>
+    </reaction>
+
+    <!-- Glyoxylate Shunt -->
+
+    <reaction id="gs1">
+      <educt id="ICit" cfg="ABCDEF"/>
+      <product id="GlyOx" cfg="AB"/>
+      <product id="Succ" cfg="DCEF"/>
+    </reaction>
+    
+    <reaction id="gs2">
+      <educt id="GlyOx" cfg="AB"/>
+      <educt id="AcCoA" cfg="ab"/>
+      <product id="MAL" cfg="ABba"/>
+    </reaction>
+
+    <!-- Transaminase Reaction -->
+
+    <reaction id="bs_akg">
+      <educt id="AKG" cfg="ABCDE"/>
+      <product id="Glut" cfg="ABCDE"/>
+    </reaction>
+    
+    <reaction id="bs_oaa">
+      <educt id="OAA" cfg="ABCD"/>
+      <product id="Asp" cfg="ABCD"/>
+    </reaction>
+
+    <!-- Anaplerotic Reactions (short version) -->
+
+    <reaction id="ana1">
+      <educt id="PEP" cfg="ABC"/>
+      <educt id="CO2" cfg="a"/>
+      <product id="OAA" cfg="ABCa"/>
+    </reaction>
+    
+    <reaction id="ana2">
+      <educt id="MAL" cfg="ABCD"/>
+      <product id="PYR" cfg="ABC"/>
+      <product id="CO2" cfg="D"/>
+    </reaction>
+
+    <!-- CO2 output -->
+
+    <reaction id="prod_CO2">
+      <educt id="CO2" cfg="A"/>
+      <product id="CO2_out" cfg="A"/>
+    </reaction>
+
+    <!-- Fluxes into Biomass -->
+
+    <reaction id="effl_Glc6P">
+      <educt id="Glc6P" cfg="ABCDEF"/>
+      <product id="BM_Glc6P" cfg="ABCDEF"/>
+    </reaction>
+    
+    <reaction id="effl_Fru6P">
+      <educt id="Fru6P" cfg="ABCDEF"/>
+      <product id="BM_Fru6P" cfg="ABCDEF"/>
+    </reaction>
+
+    <reaction id="effl_P5P">
+      <educt id="RNA" cfg="ABCDE"/>
+      <product id="BM_P5P" cfg="ABCDE"/>
+    </reaction>
+
+    <reaction id="effl_Ery4P">
+      <educt id="Ery4P" cfg="ABCD"/>
+      <product id="BM_Ery4P" cfg="ABCD"/>
+    </reaction>
+    
+    <reaction id="effl_Glyc">
+      <educt id="DHAP" cfg="ABC"/>
+      <product id="BM_Glyc" cfg="ABC"/>
+    </reaction>
+
+    <reaction id="effl_PGA">
+      <educt id="m2PGA" cfg="ABC"/>
+      <product id="BM_PGA" cfg="ABC"/>
+    </reaction>
+
+    <reaction id="effl_PEP">
+      <educt id="PEP" cfg="ABC"/>
+      <product id="BM_PEP" cfg="ABC"/>
+    </reaction>
+    
+    <reaction id="effl_Pyr">
+      <educt id="PYR" cfg="ABC"/>
+      <product id="BM_Pyr" cfg="ABC"/>
+    </reaction>
+
+    <reaction id="effl_AcCoA">
+      <educt id="AcCoA" cfg="AB"/>
+      <product id="BM_AcCoA" cfg="AB"/>
+    </reaction>
+
+    <reaction id="effl_Glut">
+      <educt id="Glut" cfg="ABCDE"/>
+      <product id="BM_Glut" cfg="ABCDE"/>
+    </reaction>
+    
+    <reaction id="effl_Asp">
+      <educt id="Asp" cfg="ABCD"/>
+      <product id="BM_Asp" cfg="ABCD"/>
+    </reaction>
+
+    <reaction id="effl_CO2">
+      <educt id="CO2" cfg="A"/>
+      <product id="BM_CO2" cfg="A"/>
+    </reaction>
+
+    <reaction id="effl_ace">
+      <educt id="AcCoA" cfg="AB"/>
+      <product id="Ace" cfg="AB"/>
+    </reaction>
+
+  </reactionnetwork>
+
+  <!--
+  Netzwerkbedingte Einschränkungen der Flüsse:
+  Hier sind ausschließlich lineare Gleichungen erlaubt; bzw. Gleichungen,
+  die sich nach einfachem Umstellen/Vereinfachen als lineare Gleichungen
+  ergeben.
+  -->
+  <constraints type="netto">
+    <math>
+      <declare>
+        <ci>scrambling_reaction</ci>
+        <apply>
+          <eq/>
+          <ci xref="tcc8a">tcc8a</ci>
+          <ci xref="tcc8b">tcc8b</ci>
+        </apply>
+      </declare>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="ppp1">ppp1</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc1">tcc1</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc2">tcc2</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc3">tcc3</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc4">tcc4</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc5">tcc5</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc6">tcc6</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc7">tcc7</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc8a">tcc8a</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc9">tcc9</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="tcc10">tcc10</ci>
+      </apply>
+
+      <apply>
+        <leq/>
+        <cn>0</cn>
+        <ci xref="ana2">ana2</ci>
+      </apply>
+      
+    </math>
+  </constraints>
+<!-- -->
+  <constraints type="exchange">
+    <math>
+      <declare>
+        <ci>scrambling_reaction</ci>
+	<apply>
+	  <eq/>
+	  <ci xref="tcc8a">tcc8a</ci>
+	  <ci xref="tcc8b">tcc8b</ci>
+	</apply>
+      </declare>
+    </math>
+<!-- -->
+  </constraints>
+
+  <!-- Eine konkrete Konfiguration des Netzwerks: -->
+  <configuration name="default">
+    <comment>experimental parameter set #1</comment>
+
+    <!-- Konfiguration der Input-Pools: -->
+    <input pool="Glc1_in" type="noncumulative">
+      <!-- die Verteilung der einzelnen Isotopomere -->
+      <label cfg="000000">0.934</label>
+      <label cfg="000001">0.011</label>
+      <label cfg="000010">0.011</label>
+      <label cfg="000100">0.011</label>
+      <label cfg="001000">0.011</label>
+      <label cfg="010000">0.011</label>
+      <label cfg="100000">0.011</label>
+    </input>
+    <input pool="Glc2_in" type="noncumulative">
+      <!-- die Verteilung der einzelnen Isotopomere -->
+      <label cfg="000000">0.01</label>
+      <label cfg="100000">0.99</label>
+    </input>
+    <input pool="Glc3_in" type="noncumulative">
+      <!-- die Verteilung der einzelnen Isotopomere -->
+      <label cfg="111111">0.9429406</label>
+      <label cfg="011111">0.0095099</label>
+      <label cfg="101111">0.0095099</label>
+      <label cfg="110111">0.0095099</label>
+      <label cfg="111011">0.0095099</label>
+      <label cfg="111101">0.0095099</label>
+      <label cfg="111110">0.0095099</label>
+    </input>
+    <!--
+    Konfiguration der Flüsse:
+     1. hier werden KEINE anhängigen Flüsse mehr aufgeführt
+     2. freien Flüssen wird ein Wert zugeordnet
+     3. "constraint"-Flüssen wird ein Wert zugeordnet und
+        zusätzlich das Attribut "fixed"
+    -->
+    <fluxes>
+      <value flux="cons_Glc2"><net>0.182489</net></value>
+      <value flux="cons_Glc3"><net>0.213743</net></value>
+      
+      <value flux="prod_CO2"><net>0.658565</net></value>
+      
+      <value flux="effl_Glc6P"><net fixed="yes">0.01211231</net></value>
+      <value flux="effl_Fru6P"><net fixed="yes">0.004172662</net></value>
+      <value flux="effl_P5P"><net fixed="yes">0.05210032</net></value>
+      <value flux="effl_Ery4P"><net fixed="yes">0.020921263</net></value>
+      <value flux="effl_Glyc"><net fixed="yes">0.007186251</net></value>
+      <value flux="effl_PGA"><net fixed="yes">0.09353717</net></value>
+      <value flux="effl_PEP"><net fixed="yes">0.044914069</net></value>
+      <value flux="effl_Pyr"><net fixed="yes">0.172006395</net></value>
+      <value flux="effl_AcCoA"><net fixed="yes">0.141233014</net></value>
+      <value flux="effl_Glut"><net fixed="yes">0.074702238</net></value>
+      <value flux="effl_Asp"><net fixed="yes">0.094638289</net></value>
+      <value flux="effl_CO2"><net fixed="yes">0.127118306</net></value>
+      <value flux="effl_ace"><net>0.0619781</net></value>
+      
+      <value flux="emp1"><xch01>0.900576</xch01></value>
+      <value flux="emp2"><xch01 fixed="yes">0</xch01></value>
+      <value flux="emp3"><xch01>0.0452776</xch01></value>
+      <value flux="emp4"><xch01>0.969967</xch01></value>
+      <value flux="emp5"><xch01>0.959334</xch01></value>
+      <value flux="emp6"><xch01 fixed="yes">0</xch01></value>
+      <value flux="emp7"><xch01>0.958239</xch01></value>
+      <value flux="emp8"><xch01>0.959762</xch01></value>
+      <value flux="emp9"><xch01>2.15E-05</xch01></value>
+
+      <value flux="edp1"><net>0.0658594</net><xch01>1.12E-09</xch01></value>
+      <value flux="edp2"><xch01 fixed="yes">0</xch01></value>
+      <value flux="edp3"><xch01>0.343549</xch01></value>
+      <value flux="edp4"><xch01>0.0566556</xch01></value>
+
+      <value flux="ppp1"><net>0.195155</net><xch01 fixed="yes">0</xch01></value>
+      <value flux="ppp2"><xch01>0.120137</xch01></value>
+      <value flux="ppp3"><xch01>0.837387</xch01></value>
+      <value flux="ppp4"><xch01>0.0828023</xch01></value>
+      <value flux="ppp5"><xch01>0.103952</xch01></value>
+      <value flux="ppp6"><xch01>0.0940764</xch01></value>
+      <value flux="ppp_P5P"><xch01>0.158751</xch01></value>
+
+      <value flux="tcc1"><xch01 fixed="yes">0</xch01></value>
+      <value flux="tcc2"><xch01 fixed="yes">0</xch01></value>
+      <value flux="tcc3"><xch01>0.0264616</xch01></value>
+      <value flux="tcc4"><xch01>0.95892</xch01></value>
+      <value flux="tcc5"><xch01 fixed="yes">0</xch01></value>
+      <value flux="tcc6"><xch01 fixed="yes">0</xch01></value>
+      <value flux="tcc7"><xch01>0.562319</xch01></value>
+      <value flux="tcc8a"><xch01>0.938797</xch01></value>
+      <value flux="tcc9"><xch01>0.952093</xch01></value>
+      <value flux="tcc10"><xch01>0.0658212</xch01></value>
+
+      <value flux="gs1"><net>0.0252419</net><xch01 fixed="yes">0</xch01></value>
+      <value flux="gs2"><xch01 fixed="yes">0</xch01></value>
+
+      <value flux="bs_akg"><xch01>0.900778</xch01></value>
+      <value flux="bs_oaa"><xch01>0.911451</xch01></value>
+
+      <value flux="ana1"><net>0.21535</net><xch01>5.69E-06</xch01></value>
+      <value flux="ana2"><xch01 fixed="yes">0</xch01></value>
+    </fluxes>
+  </configuration>
+
+</fluxml>
+
