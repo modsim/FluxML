@@ -4,6 +4,8 @@
 <p align="justify">FluxML is a universal modeling language for metabolic flux analysis designed with the aim of providing a standard document format for creating, validating and reliable exchanging of arbitrary metabolic models across different simulation tools. It's hierarchically structured based on widely used XML (eX-tensible Markup Language) and specified all essential informations required to enable performing both isotopically stationary and non-stationary 13C metabolic Fux analysis including the structure of the metabolic network, atom transitions, experimental data, model constraints and parameters. <br/>
 FluxML is organized in three major releases, termed Levels. Level 1 is dedicated to isotopically stationary 13C MFA while Level 2 covers isotopically non-stationary 13C MFA in addition. With Level 3 the general case of multiple, isotopically stationary and non-stationary isotopic tracer experiments are supported. For all released FluxML Levels, a formal syntax description defined in a W3C XML Schema Document (https://13cflux.net/fluxml), an associated [UML diagramm](images/fluxml_diagram.png) and an open-source  C/C++ library, named <i>libFluxML</i>, for parsing, serializing and manipulating FluxML documents which supports all releases of FluxML up through Level 3 are provided. In the following sections the FluxML elements are briefly addressed.</p>
 
+FluxML is published in frontieres in Microbiology ([doi: 10.3389/fmicb.2019.01022](https://www.frontiersin.org/articles/10.3389/fmicb.2019.01022/abstract)). If you use this work, please cite accordingly.
+
 
 ## Table of Contents
 * [Dictionary of XML Terms](#dictionary-of-xml-terms)
@@ -1042,7 +1044,7 @@ If libFluxML was installed in a standard location (like the default `/usr/local`
 
 `g++ readFluxMLModel.cpp -o readFluxMLModel -lFluxML -lxerces-c`
 
-Assuming that the libFluxML is installed in the non standard location `FREFIX` (with `./configure --prefix=$PREFIX`) this has to be specified for the compiler and linker:
+Assuming that the libFluxML is installed in the non standard location `PREFIX` (with `./configure --prefix=$PREFIX`) this has to be specified for the compiler and linker:
 
 `g++ readFluxMLModel.cpp -o readFluxMLModel -I"$PREFIX"/include/ -L"$PREFIX"/lib/ -lFluxML -lxerces-c -Wl,-rpath="$PREFIX"/lib/`
 
