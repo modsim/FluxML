@@ -877,7 +877,7 @@ The following Figure shows the complete UML diagram of FluxML with all implement
 ### Download & Installation
 Clone the FluxML repository and build it with GNU autotools
 
-1. `config/mk_autotools.sh boot`
+1. `config/mkautotools.sh boot`
 1. `./configure`
 1. `make`
 1. `make install`
