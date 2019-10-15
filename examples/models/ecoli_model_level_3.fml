@@ -1173,7 +1173,7 @@
 					<textual>AC1_v35___1</textual>
 				</netflux>
 			</fluxmeasurement>
-			<poolmeasurement/>
+			<poolsizemeasurement/>
 		</model>
 		<data>
 			<datum id="ms_group_0" stddev="0.01" weight="2,0">.007607329468886703</datum>

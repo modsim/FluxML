@@ -1236,7 +1236,7 @@
 </group></labelingmeasurement><fluxmeasurement>
 <netflux id="fp_0">
 <textual>AC1_v35___1</textual>
-</netflux></fluxmeasurement><poolmeasurement>
+</netflux></fluxmeasurement><poolsizemeasurement>
 <poolsize id="pm_0">
 <textual>G6P</textual>
 </poolsize>
@@ -1296,7 +1296,7 @@
 </poolsize>
 <poolsize id="pm_9">
 <textual>Fum</textual>
-</poolsize></poolmeasurement></model><data>
+</poolsize></poolsizemeasurement></model><data>
 <datum id="ms_group_0" stddev="0.01" time=".008333" weight="0">.9783252711678733</datum>
 <datum id="ms_group_0" stddev="0.01" time=".008333" weight="1">.021170224498232994</datum>
 <datum id="ms_group_0" stddev="0.01" time=".008333" weight="2">.000504504333893822</datum>
@@ -2284,61 +2284,61 @@
         <fluxvalue flux="AA8_v44___1" type="xch">1.4333333333333336E-10</fluxvalue>
         <fluxvalue flux="AA9_v45___1" type="xch">98.99288000000001</fluxvalue>
         <fluxvalue flux="TH1_v63___1" type="xch">436.9674333333333</fluxvalue>
-        <poolvalue pool="G6P">0.36725</poolvalue>
-        <poolvalue pool="F6P">0.351</poolvalue>
-        <poolvalue pool="GAP">0.05</poolvalue>
-        <poolvalue pool="_3PG">0.05</poolvalue>
-        <poolvalue pool="PEP">0.05265</poolvalue>
-        <poolvalue pool="Pyr">5.8175</poolvalue>
-        <poolvalue pool="AcCoA">0.162825</poolvalue>
-        <poolvalue pool="OAC">0.039</poolvalue>
-        <poolvalue pool="Cit">8.540675</poolvalue>
-        <poolvalue pool="ICit">0.05</poolvalue>
-        <poolvalue pool="Suc">1.37605</poolvalue>
-        <poolvalue pool="Fum">0.27603333</poolvalue>
-        <poolvalue pool="Mal">3.666</poolvalue>
-        <poolvalue pool="Ru5P">0.0026</poolvalue>
-        <poolvalue pool="X5P">1.31126667</poolvalue>
-        <poolvalue pool="R5P">1.31126667</poolvalue>
-        <poolvalue pool="S7P">0.02</poolvalue>
-        <poolvalue pool="E4P">0.0026</poolvalue>
-        <poolvalue pool="FBP">0.05</poolvalue>
-        <poolvalue pool="AKG">0.65216667</poolvalue>
-        <poolvalue pool="Glu">5.551</poolvalue>
-        <poolvalue pool="Gln">0.6422</poolvalue>
-        <poolvalue pool="Pro">0.1859</poolvalue>
-        <poolvalue pool="Asp">0.4381</poolvalue>
-        <poolvalue pool="Asn">0.1339</poolvalue>
-        <poolvalue pool="Thr">0.0494</poolvalue>
-        <poolvalue pool="Ile">0.0429</poolvalue>
-        <poolvalue pool="Met">0.039</poolvalue>
-        <poolvalue pool="DHAP">0.4615</poolvalue>
-        <poolvalue pool="Ser">0.4459</poolvalue>
-        <poolvalue pool="His">0.0676</poolvalue>
-        <poolvalue pool="Phe">0.0858</poolvalue>
-        <poolvalue pool="CO2">1.0</poolvalue>
-        <poolvalue pool="Gly">0.4134</poolvalue>
-        <poolvalue pool="MEETHF">0.02</poolvalue>
-        <poolvalue pool="Lys">0.4693</poolvalue>
-        <poolvalue pool="_6PG">0.494</poolvalue>
-        <poolvalue pool="TK_C2">0.05</poolvalue>
-        <poolvalue pool="TA_C3">0.05</poolvalue>
-        <poolvalue pool="KDPG">0.05</poolvalue>
-        <poolvalue pool="SucCoA">0.89396667</poolvalue>
-        <poolvalue pool="Glyox">0.02</poolvalue>
-        <poolvalue pool="Ac">0.8554</poolvalue>
-        <poolvalue pool="Cys">0.2652</poolvalue>
-        <poolvalue pool="Val">0.2353</poolvalue>
-        <poolvalue pool="Ala">0.4654</poolvalue>
-        <poolvalue pool="Arg">0.0754</poolvalue>
-        <poolvalue pool="FTHF">0.02</poolvalue>
-        <poolvalue pool="Trp">0.0117</poolvalue>
-        <poolvalue pool="METHF">0.02</poolvalue>
-        <poolvalue pool="Leu">0.156</poolvalue>
-        <poolvalue pool="CO2_unlabeled">0.1</poolvalue>
-        <poolvalue pool="CO2_out">0.1</poolvalue>
-        <poolvalue pool="LL_DAP">0.05</poolvalue>
-        <poolvalue pool="Tyr">0.1</poolvalue>
+        <poolsizevalue pool="G6P">0.36725</poolsizevalue>
+        <poolsizevalue pool="F6P">0.351</poolsizevalue>
+        <poolsizevalue pool="GAP">0.05</poolsizevalue>
+        <poolsizevalue pool="_3PG">0.05</poolsizevalue>
+        <poolsizevalue pool="PEP">0.05265</poolsizevalue>
+        <poolsizevalue pool="Pyr">5.8175</poolsizevalue>
+        <poolsizevalue pool="AcCoA">0.162825</poolsizevalue>
+        <poolsizevalue pool="OAC">0.039</poolsizevalue>
+        <poolsizevalue pool="Cit">8.540675</poolsizevalue>
+        <poolsizevalue pool="ICit">0.05</poolsizevalue>
+        <poolsizevalue pool="Suc">1.37605</poolsizevalue>
+        <poolsizevalue pool="Fum">0.27603333</poolsizevalue>
+        <poolsizevalue pool="Mal">3.666</poolsizevalue>
+        <poolsizevalue pool="Ru5P">0.0026</poolsizevalue>
+        <poolsizevalue pool="X5P">1.31126667</poolsizevalue>
+        <poolsizevalue pool="R5P">1.31126667</poolsizevalue>
+        <poolsizevalue pool="S7P">0.02</poolsizevalue>
+        <poolsizevalue pool="E4P">0.0026</poolsizevalue>
+        <poolsizevalue pool="FBP">0.05</poolsizevalue>
+        <poolsizevalue pool="AKG">0.65216667</poolsizevalue>
+        <poolsizevalue pool="Glu">5.551</poolsizevalue>
+        <poolsizevalue pool="Gln">0.6422</poolsizevalue>
+        <poolsizevalue pool="Pro">0.1859</poolsizevalue>
+        <poolsizevalue pool="Asp">0.4381</poolsizevalue>
+        <poolsizevalue pool="Asn">0.1339</poolsizevalue>
+        <poolsizevalue pool="Thr">0.0494</poolsizevalue>
+        <poolsizevalue pool="Ile">0.0429</poolsizevalue>
+        <poolsizevalue pool="Met">0.039</poolsizevalue>
+        <poolsizevalue pool="DHAP">0.4615</poolsizevalue>
+        <poolsizevalue pool="Ser">0.4459</poolsizevalue>
+        <poolsizevalue pool="His">0.0676</poolsizevalue>
+        <poolsizevalue pool="Phe">0.0858</poolsizevalue>
+        <poolsizevalue pool="CO2">1.0</poolsizevalue>
+        <poolsizevalue pool="Gly">0.4134</poolsizevalue>
+        <poolsizevalue pool="MEETHF">0.02</poolsizevalue>
+        <poolsizevalue pool="Lys">0.4693</poolsizevalue>
+        <poolsizevalue pool="_6PG">0.494</poolsizevalue>
+        <poolsizevalue pool="TK_C2">0.05</poolsizevalue>
+        <poolsizevalue pool="TA_C3">0.05</poolsizevalue>
+        <poolsizevalue pool="KDPG">0.05</poolsizevalue>
+        <poolsizevalue pool="SucCoA">0.89396667</poolsizevalue>
+        <poolsizevalue pool="Glyox">0.02</poolsizevalue>
+        <poolsizevalue pool="Ac">0.8554</poolsizevalue>
+        <poolsizevalue pool="Cys">0.2652</poolsizevalue>
+        <poolsizevalue pool="Val">0.2353</poolsizevalue>
+        <poolsizevalue pool="Ala">0.4654</poolsizevalue>
+        <poolsizevalue pool="Arg">0.0754</poolsizevalue>
+        <poolsizevalue pool="FTHF">0.02</poolsizevalue>
+        <poolsizevalue pool="Trp">0.0117</poolsizevalue>
+        <poolsizevalue pool="METHF">0.02</poolsizevalue>
+        <poolsizevalue pool="Leu">0.156</poolsizevalue>
+        <poolsizevalue pool="CO2_unlabeled">0.1</poolsizevalue>
+        <poolsizevalue pool="CO2_out">0.1</poolsizevalue>
+        <poolsizevalue pool="LL_DAP">0.05</poolsizevalue>
+        <poolsizevalue pool="Tyr">0.1</poolsizevalue>
       </variables>
     </simulation>
   </configuration>
