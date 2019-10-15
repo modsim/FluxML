@@ -1,0 +1,25 @@
+language: cpp
+
+dist: xenial
+addons:
+  apt:
+    packages:
+      - gfortran
+      - re2c
+      - libxerces-c-dev
+      - libblas-dev
+      - liblapack-dev
+      - libboost-dev
+      - libgmp-dev
+
+env:
+  global:
+    - MAKEFLAGS="-j 2"
+
+script:
+  - config/mkautotools.sh boot
+  - CXXFLAGS=-std=c++11 ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu
+  - make
+  - sudo make install
+  - g++ examples/programs/readFluxMLModel.cpp -o readFluxMLModel -lFluxML -lxerces-c
+  - ./readFluxMLModel examples/models/ecoli_model_level_1.fml
