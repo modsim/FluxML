@@ -33,7 +33,7 @@
 
     </xs:documentation>
   </xs:annotation>
-  <xs:import namespace="https://www.w3.org/1998/Math/MathML" schemaLocation="httpsge://www.w3.org/Math/XMLSchema/mathml2/mathml2.xsd"/>
+  <xs:import namespace="https://www.w3.org/1998/Math/MathML" schemaLocation="https://www.w3.org/Math/XMLSchema/mathml2/mathml2.xsd"/>
   <!-- root element fluxml -->
   <xs:element name="fluxml">
     <xs:complexType>
