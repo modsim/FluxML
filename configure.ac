@@ -80,6 +80,7 @@ dnl -------------------------------------------
 dnl     re2c support
 dnl -------------------------------------------
 AC_PATH_PROG([RE2C],[re2c])
+AS_IF([test x"$RE2C" == x""], [AC_MSG_ERROR([Please install re2c first])])
 
 dnl -------------------------------------------
 dnl     Xerces-C support
