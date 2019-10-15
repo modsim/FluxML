@@ -5,6 +5,7 @@ ExprParser.cc : ExprParser.y ExprScannerMM.inc
 ExprScannerMM.inc : ExprScannerMM.re
 	$(RE2C) -o $@ $<
 
+BUILT_SOURCES = ExprParser.cc
 EXTRA_DIST = ExprParser.y ExprScannerMM.re ExprScannerMM.inc
 
 flux_includedir = $(includedir)/@PACKAGE@
