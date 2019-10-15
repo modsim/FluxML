@@ -99,6 +99,13 @@ ACX_BLASLAPACK(
 	AC_MSG_ERROR([no usable LAPACK/BLAS libraries found])
 	)
 
+dnl -----------------------------------------------
+dnl GMP
+dnl -----------------------------------------------
+ACX_GMP(AC_MSG_NOTICE([usable GMP libraries detected]),
+    AC_MSG_ERROR([no usable GMP libraries found])
+    )
+
 dnl -------------------------------------------
 dnl      Check for different platforms
 dnl -------------------------------------------
