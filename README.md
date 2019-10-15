@@ -1,10 +1,10 @@
 <p align="center"> <img src="images/fluxml_logo.png"></p>
 
 ## Introduction
-<p align="justify">FluxML is a universal modeling language for metabolic flux analysis designed with the aim of providing a standard document format for creating, validating and reliable exchanging of arbitrary metabolic models across different simulation tools. It's hierarchically structured based on widely used XML (eX-tensible Markup Language) and specified all essential informations required to enable performing both isotopically stationary and non-stationary 13C metabolic Fux analysis including the structure of the metabolic network, atom transitions, experimental data, model constraints and parameters. <br/>
-FluxML is organized in three major releases, termed Levels. Level 1 is dedicated to isotopically stationary 13C MFA while Level 2 covers isotopically non-stationary 13C MFA in addition. With Level 3 the general case of multiple, isotopically stationary and non-stationary isotopic tracer experiments are supported. For all released FluxML Levels, a formal syntax description defined in a W3C XML Schema Document (https://13cflux.net/fluxml), an associated [UML diagramm](images/fluxml_diagram.png) and an open-source  C/C++ library, named <i>libFluxML</i>, for parsing, serializing and manipulating FluxML documents which supports all releases of FluxML up through Level 3 are provided. In the following sections the FluxML elements are briefly addressed.</p>
+<p align="justify">FluxML is a universal modeling language for metabolic flux analysis designed with the aim of providing a standard document format for creating, validating and reliable exchanging of arbitrary metabolic models across different simulation tools. It's hierarchically structured based on widely used XML (eX-tensible Markup Language) and specified all essential information required to enable performing both isotopically stationary and non-stationary 13C metabolic Fux analysis including the structure of the metabolic network, atom transitions, experimental data, model constraints and parameters. <br/>
+FluxML is organized in three major releases, termed Levels. Level 1 is dedicated to isotopically stationary 13C MFA while Level 2 covers isotopically non-stationary 13C MFA in addition. With Level 3 the general case of multiple, isotopically stationary and non-stationary isotopic tracer experiments are supported. For all released FluxML Levels, a formal syntax description defined in a W3C XML Schema Document (https://13cflux.net/fluxml), an associated [UML diagram](images/fluxml_diagram.png) and an open-source  C/C++ library, named <i>libFluxML</i>, for parsing, serializing and manipulating FluxML documents which supports all releases of FluxML up through Level 3 are provided. In the following sections the FluxML elements are briefly addressed.</p>
 
-FluxML is published in frontieres in Microbiology ([doi: 10.3389/fmicb.2019.01022](https://www.frontiersin.org/articles/10.3389/fmicb.2019.01022/abstract)). If you use this work, please cite accordingly.
+FluxML is published in Frontiers in Microbiology ([doi: 10.3389/fmicb.2019.01022](https://www.frontiersin.org/articles/10.3389/fmicb.2019.01022/abstract)). If you use this work, please cite accordingly.
 
 
 ## Table of Contents
@@ -61,9 +61,9 @@ FluxML is published in frontieres in Microbiology ([doi: 10.3389/fmicb.2019.0102
 ## The Basic Structure of FluxML Format
 <p align="justify"> Being a XML format, the layout of FluxML is hierarchic. Figure 1 shows the hierarchical structure of the FluxML document. The top-level element fluxml contains the optional element info which provides basic information about the model and the element reactionnetwork containing the metabolites and reactions which, together with the constraints element defines the isotope network structure. A very important core concept in FluxML is that of configurations, encoding the concept that one model structure can be evaluated within different experimental settings. In this way, model instances that, for instance, distinguish themselves in the selection of the substrate (input pool) or the tracer mixture, flux parametrization and/or measurement configuration can be stored in different sections within the same file. Another key concept of FluxML is the separation of the experimental data declaration and their specification as represented by the measurement sub-elements model and data, respectively.
 </p>
-<p align="center"> <img src="images/fluxml_basic_layout.png"><br><b>Figure 1:</b> The main elements of the FluxML docuement</p>
+<p align="center"> <img src="images/fluxml_basic_layout.png"><br><b>Figure 1:</b> The main elements of the FluxML document</p>
 
-<p align="justify"> Like any other well-formed XML document, the FluxML document can optionally begin with an XML preamble. This is mostly used to provide XML version information and to declare the character encoding of the document. Especially for FluxML documents the XML version 1.0 and the UTF-8 character encoding should be used, while the attribute standalone is optional and signals FluxML parsers and validators that the document depends on an external document type definition (DTD). The XML preamble is followed by exaclty one signle root element fluxml, which indicates parsing applications the starting point for reading the encapsulated data. The root element can have a number of optional attributes. This usually includes an "xmlns" attribute indicating the XML namespace denoted by URI "http://13cflux.net/fluxml" which tells parsers the location of XML schema grammar that was used to write the document. The following XML fragment shows the basic structure representation of a FluxML document:</p>
+<p align="justify"> Like any other well-formed XML document, the FluxML document can optionally begin with an XML preamble. This is mostly used to provide XML version information and to declare the character encoding of the document. Especially for FluxML documents the XML version 1.0 and the UTF-8 character encoding should be used, while the attribute standalone is optional and signals FluxML parsers and validators that the document depends on an external document type definition (DTD). The XML preamble is followed by exactly one single root element fluxml, which indicates parsing applications the starting point for reading the encapsulated data. The root element can have a number of optional attributes. This usually includes an "xmlns" attribute indicating the XML namespace denoted by URI "http://13cflux.net/fluxml" which tells parsers the location of XML schema grammar that was used to write the document. The following XML fragment shows the basic structure representation of a FluxML document:</p>
 
 ```xml
 <fluxml xmlns="http://www.13cflux.net/fluxml"> 
@@ -102,7 +102,7 @@ XML Instance Representation:
   <signature> xsd:string </signature> [0..1]
 </info>
 ```
-<p align="justify">The modeler and strain indicate the name of the modeler and used strain, respectively. The version of the FluxML Specification Language is given by the sub-element version. This is used to notify parsing program that the document they are reading is properly formatted against the schema for that specified version. The timestamp element date allows to specify the date of model creation/modification . If the date is stated, it has to follow the standard format "YYYY-MM-DD HH:MM:SS". The comment field can be used to store additional remark or model specific informations. Finally, the signature field which represents an important tag and is intended for automatic signing of FluxML documents. The following example shows a FluxML instance representation of the element info:</p>
+<p align="justify">The modeler and strain indicate the name of the modeler and used strain, respectively. The version of the FluxML Specification Language is given by the sub-element version. This is used to notify parsing program that the document they are reading is properly formatted against the schema for that specified version. The timestamp element date allows to specify the date of model creation/modification . If the date is stated, it has to follow the standard format "YYYY-MM-DD HH:MM:SS". The comment field can be used to store additional remark or model specific information. Finally, the signature field which represents an important tag and is intended for automatic signing of FluxML documents. The following example shows a FluxML instance representation of the element info:</p>
 
 ```xml
 <info >
@@ -114,7 +114,7 @@ XML Instance Representation:
    <signature>dlk]587JHVFDjng54gerl WEWE4tr878re7t</signature>
 </info >
 ```
-<!--In the following, a detailed desciption of each FluxML element will be followed in the next section.-->
+<!--In the following, a detailed description of each FluxML element will be followed in the next section.-->
 
 ### Network Structure and Atom Mappings
 <p align="justify"> The next mandatory element is the <b>reactionnetwork</b> containing all information relating to the isotope network structure. This includes a list of metabolite pools which can be declared under the element <b>metabolitepools</b> and a set of reactions that can be specified by using the element <b>reaction</b>. The latter one can appear as many times as necessary to describe all reactions in the network; however, the metabolitepools can only appear once. The following fragment shows the XML instance representation of the element reactionnetwork:</p>
@@ -136,8 +136,8 @@ XML Instance Representation:
 </metabolitepools>
 ``` 
 
-<p align="justify"> The "id" attribute is always required and describe a unique identifier that has to follow the same convections used for identifiers in programming languages. The "atoms" attribute indicates the total number of atoms available as labeling positions, while the "cfg" attribute provides additional information about the number of atoms of each chemical element used by the Isotopic Labeling Experiment (ILE). For example, the following configuration **"C1H2O3N4"** de- notes that one carbon, two hydrogen, three oxygen and four nitrogen are used by ILE. Please note that, If the "atoms" attribute is omitted the metabolite is assumed to have zero labeling positions. This allows to model purely stoichiometric networks. Analog to the "cfg" attribute, which can also be omitted, in case that, only one chemical element is used.</p>
-<p align="justify">  The pool element may include additional <b>annotations</b>, which can be used to store additional textual information. The annotations are not evaluated by the FluxML parser and their content is purly informational. The following example illustrates the specification of tree metabolite pools: Fructose-bisphosphate (FBP), Glyceraldehyde 3-phosphate (GAP) and Dihydroxyacetonphosphat (DHAP) modelated by a multiple isotope labeling experiment:</p>
+<p align="justify"> The "id" attribute is always required and describe a unique identifier that has to follow the same conventions used for identifiers in programming languages. The "atoms" attribute indicates the total number of atoms available as labeling positions, while the "cfg" attribute provides additional information about the number of atoms of each chemical element used by the Isotopic Labeling Experiment (ILE). For example, the following configuration **"C1H2O3N4"** de- notes that one carbon, two hydrogen, three oxygen and four nitrogen are used by ILE. Please note that, If the "atoms" attribute is omitted the metabolite is assumed to have zero labeling positions. This allows to model purely stoichiometric networks. Analog to the "cfg" attribute, which can also be omitted, in case that, only one chemical element is used.</p>
+<p align="justify">  The pool element may include additional <b>annotations</b>, which can be used to store additional textual information. The annotations are not evaluated by the FluxML parser and their content is purely informational. The following example illustrates the specification of tree metabolite pools: Fructose-bisphosphate (FBP), Glyceraldehyde 3-phosphate (GAP) and Dihydroxyacetone phosphate (DHAP) modeled by a multiple isotope labeling experiment:</p>
    
 ```xml
 <metabolitepools> 
@@ -153,7 +153,7 @@ XML Instance Representation:
 </metabolitepools>    
 ```
 
-<p align="justify"> As mentioned befor, the reaction element can be used to specify a metabolic reaction. A reaction often describes the transformation of a set of educts (e.g. starting material) into a set of products and is specified below:
+<p align="justify"> As mentioned before, the reaction element can be used to specify a metabolic reaction. A reaction often describes the transformation of a set of educts (e.g. starting material) into a set of products and is specified below:
 
 ```xml
 <reaction  id="xsd:ID [1..*]"  bidirectional="xsd:boolean [0..1]"> 
@@ -163,7 +163,7 @@ XML Instance Representation:
 </reaction>
 ```
 
-<p align="justify"> Each <b>reaction</b> element may contain an optional list of annotations and a nonempty list of reactants. Reactants on the left side of the reaction are referenced by the element <b>reduct</b>, while rectants appearing on the right side are referenced by the element <b>rproduct</b>. In case a reaction does not specify any products it is considered to be an efflux from the network (sink). The name of the reaction is given by a unique "id" attribute. The Boolean attribute "bidirectional" allows to introduce simple directionality constraints: setting "bidirectional" to "false" restricts the reaction's exchange flux to zero and the net flux to a non-negative value. For a <i>scrambling reaction</i> multiple variants of the same reaction may exist. In this case the "id" attribute has to specify multiple identifiers for the different variants of the reaction. See below for more information. 
+<p align="justify"> Each <b>reaction</b> element may contain an optional list of annotations and a nonempty list of reactants. Reactants on the left side of the reaction are referenced by the element <b>reduct</b>, while reactants appearing on the right side are referenced by the element <b>rproduct</b>. In case a reaction does not specify any products it is considered to be an efflux from the network (sink). The name of the reaction is given by a unique "id" attribute. The Boolean attribute "bidirectional" allows to introduce simple directionality constraints: setting "bidirectional" to "false" restricts the reaction's exchange flux to zero and the net flux to a non-negative value. For a <i>scrambling reaction</i> multiple variants of the same reaction may exist. In this case the "id" attribute has to specify multiple identifiers for the different variants of the reaction. See below for more information. 
 
 ```xml
 <{reduct,rproduct} id="xsd:IDREF [1]" cfg="CfgType [0..1]">
@@ -425,7 +425,7 @@ Here, the simulation results provided by feeding sawtooth modulated input substr
 <p align="center"> <img src="images/profiles/saw_profile.png">Figure 5:</b> Simulated mass isotopomer with sawtooth modulated input substrate</p>
 
 ### Local Stoichiometric Constraints
-<p align="justify" markdown="1"> FluxML specification enable to separate constraints that are globally valid (i.e., in-herently linked to the network structure independent of experimental conditions) from local constraints, i.e., those that may only be valid in the context of an experimental setting. For instance, the flux solution space can be tightened by setting local constraints. Both types of constraints are syntactically equivalent.</p>
+<p align="justify" markdown="1"> FluxML specification enable to separate constraints that are globally valid (i.e., inherently linked to the network structure independent of experimental conditions) from local constraints, i.e., those that may only be valid in the context of an experimental setting. For instance, the flux solution space can be tightened by setting local constraints. Both types of constraints are syntactically equivalent.</p>
 
 ## Measurement Specification
 <p align="justify"> In FluxML measurements are located in the <b>measurement</b> element of FluxML tree. Here we distinguish between the configuration of the measurements (model) and the quantitative data specification (data). </p>
@@ -623,7 +623,7 @@ The following example shows a flux ratios specification:
   </poolsize>
 </poolsizemeasurement>  
 ```
-The following a single and pooled measurement example of pool size measurments, respectively.
+The following a single and pooled measurement example of pool size measurements, respectively.
 ```xml
 <poolsizemeasurement>
   <poolsize id="psm_0">
@@ -691,7 +691,7 @@ After the specification of measurment types, all measured quantities have to be 
 <ul>
 	<li>attribute "row" refers to a generic measurement group; in particular to a row containing a formula describing a single measurement value. "row" is expected to be an integer >0.</li>
 	<li>attribute "weight" refers to a MS or MS/MS measurement. For MS measurements the value of "weight" is a simple integer. For MS/MS measurements "weight" takes two comma-separated integer values (the weight of the fragment and the weight of the fragment's fragment).</li>
-	<li>attributes "pos" and "type" give the labeling position and multiplet-type for NMR measurements. Attribute "pos" is used by both 1H-NMR and 13C-NMR measurements. Attribute "type" identifies the multiplet type and is reserved for 13C-NMR measurements. Supported values for "type" are: "S" (signlet), "DL" (left doublet), "DR" (right doublet), "DD" (double doublet), and "T" (triplet).</li>
+	<li>attributes "pos" and "type" give the labeling position and multiplet-type for NMR measurements. Attribute "pos" is used by both 1H-NMR and 13C-NMR measurements. Attribute "type" identifies the multiplet type and is reserved for 13C-NMR measurements. Supported values for "type" are: "S" (singlet), "DL" (left doublet), "DR" (right doublet), "DD" (double doublet), and "T" (triplet).</li>
 </ul>
 
 ```xml
@@ -744,10 +744,10 @@ After the specification of measurment types, all measured quantities have to be 
 	[11]	msmsrspec	::=	"[", range, ":", range "]";	 
 	[12]	 MSMSspec	::=	poolname [ msmsrspec ], "#M", pair, { ",", pair }; 
 
-<p align="justify"> Semantics: the two range specifications in <i>msmsrspec</i> denote the fragment and the fragment of the fragment. Consequently, the second range specification describes a subset of labeling positions appearing in the first range specification. The list of weight pairs following the "#M" denote the mass-increments of the fragement and the fragment's fragment. </p>
+<p align="justify"> Semantics: the two range specifications in <i>msmsrspec</i> denote the fragment and the fragment of the fragment. Consequently, the second range specification describes a subset of labeling positions appearing in the first range specification. The list of weight pairs following the "#M" denote the mass-increments of the fragment and the fragment's fragment. </p>
 
 ##### MIMS Measurements
-<p align="justify"> A MIMS measurement describes a multiple isotopic MS measurement which may contain two or more isotopic labeling enrichments in a single MS steup.</p>
+<p align="justify"> A MIMS measurement describes a multiple isotopic MS measurement which may contain two or more isotopic labeling enrichments in a single MS setup.</p>
 
 	[10]	        tuple  	  ::=       "(" number "," number ("," number)* ")";
 	[11]	mimsrangespec	  ::=	    "[", range, "]";
@@ -757,7 +757,7 @@ After the specification of measurment types, all measured quantities have to be 
 
 ##### 1H-NMR Measurements
 
-<p align="justify">The proton and electron of a hydrogen atom have a non-zero spin with opposite signs. For an unpaired hydrogen atom these spins would normally calcel out since the electron's spin shields the spin of the proton. However, for a hydrogen in a chemical bond and depending on the electronegativity of the bonding partners, the electron is pulled away from the proton an the proton shows up as a peak in the NMR spectrum. This chemical shift results in different resonance frequencies, and thus different hydrogens in the molecules can be discriminated. More importantly it is possible to discriminate labeled from unlabeled atom positions in the neughborhood of hydrogens, and thus, this 1H-NMR allows the description of positional 13C labeling enrichment.</p>
+<p align="justify">The proton and electron of a hydrogen atom have a non-zero spin with opposite signs. For an unpaired hydrogen atom these spins would normally cancel out since the electron's spin shields the spin of the proton. However, for a hydrogen in a chemical bond and depending on the electronegativity of the bonding partners, the electron is pulled away from the proton an the proton shows up as a peak in the NMR spectrum. This chemical shift results in different resonance frequencies, and thus different hydrogens in the molecules can be discriminated. More importantly it is possible to discriminate labeled from unlabeled atom positions in the neighborhood of hydrogens, and thus, this 1H-NMR allows the description of positional 13C labeling enrichment.</p>
 
 <p align="justify">A 1H-NMR measurement group specification is essentially a list of 13C labeling positions. It is assumed that all listed carbon atom positions have at least one bond to a hydrogen atom.</p>
 	
@@ -767,13 +767,13 @@ After the specification of measurment types, all measured quantities have to be 
 
 ##### 13C-NMR Measurements
 
-<p align="justify">The nuclear spin of the most frequently occuring carbon isotope 12C (98.89%) is zero. However, the 13C isotopes (1.11%) possess an extra neutron and thus an non-zero spin. Consequently, a labeling position occupied by a 13C atom can be recognized in a NMR peak spectrum.</p>
+<p align="justify">The nuclear spin of the most frequently occurring carbon isotope 12C (98.89%) is zero. However, the 13C isotopes (1.11%) possess an extra neutron and thus an non-zero spin. Consequently, a labeling position occupied by a 13C atom can be recognized in a NMR peak spectrum.</p>
 
 <p align="justify">In addition, because the resonance frequency of a 13C position changes with additional 13C isotopes in the neighborhood, certain labeling constellations can be discriminated. The NMR device provides the information on how many 13C neighbors exist for particular 13C or a group or 13Cs. In general the frequency response will be split into multiplets having n+1 peaks where n is the number of adjacent 13Cs. The 13CFLUX 2 software allows the description of a neighborhood of up to three carbon atoms, which results in four different multiplets:</p>
 <ul>
 	<li>Singlet. If there are no 13C isotopes on the adjacent labeling positions then the frequency response will (ideally) show a single peak, a singlet.</li>
 	<li>Left and Right Doublet. If there is one 13C isotope on an adjacent labeling position the frequency response will split into two peaks of equal size, a doublet. Furthermore, it is usually possible to identify the location of the 13C isotope, which characterizes the doublet as a left doublet or a right doublet.</li>
-	<li>Triplet. In the doublet case, it may happen that both adjacent labeling positions are chemically equivalent (e.g. in a symmetric molecule). In this situation it is impossible to a left ffrom a right doublet and a triplet can be observed in the frequency spectrum. The resonance will be split into three peaks with height ration 1:2:1.</li>
+	<li>Triplet. In the doublet case, it may happen that both adjacent labeling positions are chemically equivalent (e.g. in a symmetric molecule). In this situation it is impossible to a left from a right doublet and a triplet can be observed in the frequency spectrum. The resonance will be split into three peaks with height ration 1:2:1.</li>
 	<li>Doublet of Doublets (Double Doublet). In case a 13C isotope is surrounded by two 13C isotopes a special doublet can be observed. This doublet consists of two peaks of equal height. In contrast to the original doublet each peak is again split into two peaks, which gives the doublet of doublets.</li>
 </ul>
 	
@@ -797,13 +797,13 @@ After the specification of measurment types, all measured quantities have to be 
 ##### Generic Specification of Measurements
 <p align="justify">After all, the short notations for NMR and MS measurements given above are nothing but macros allowing the convenient description of sums of subsets of the full set of a metabolite's isotopomer fractions.</p>
 
-<p align="justify">For the rare cases where these macros do not provide enough flexibility to model a measurement 13CFLUX 2 provides a generic way for the description of a set of measurements. Such a generic measurement specification consists of arbitrary formulas which may include the short notations for MS and NMR measurments and an additional "generalized cumomer" short notation describing a single sum of isotopomer fractions: </p>
+<p align="justify">For the rare cases where these macros do not provide enough flexibility to model a measurement 13CFLUX 2 provides a generic way for the description of a set of measurements. Such a generic measurement specification consists of arbitrary formulas which may include the short notations for MS and NMR measurements and an additional "generalized cumomer" short notation describing a single sum of isotopomer fractions: </p>
 
 	[16]	patternlist	::=	("0"|"1"|"x"), { ("0"|"1"|"x") }; 	 
 	[17]	   CumoSpec	::=	poolname, "#", patternlist; 
 	
 
-<p align="justify">Semantics: each symbol "0", "1", "x" appearing at position i in patternlist denotes the labeling state of the i-th atom of the metabolite specififed by poolname:</p
+<p align="justify">Semantics: each symbol "0", "1", "x" appearing at position i in patternlist denotes the labeling state of the i-th atom of the metabolite specified by poolname:</p
 <ul>
     <li>the "0" denotes the absence of an isotopic labeling,</li>
     <li>the "1" denotes the presence of an isotopic labeling,</li>
@@ -824,7 +824,7 @@ After the specification of measurment types, all measured quantities have to be 
   <variables> ... </variables> [0..1]
 </simulation>
 ```
-<p align="justify">The attribute "methode" and "type" are specific to the capabilities of the simulator and are therefore not generally valid. Especially, for the JuFLUX simulator, the choice of the simulation method, Cumomer or EMU, may be influenced by attribute "method". The default value is "auto", which selects the optimal simulation method for the specified measurement model. Other posible choices are "cumomer" (for all NMR and MS/MS measurements) and "emu" (for MS measurements). The attribute "type" controls the behavior of network reduction. Setting type=”auto” means that the measurement group specifications are examined in orderto reduce the computational effort as much as possible. In this case, ideally, only the isotopomer fractions required for the simulation of the measurements are computed. While type=”full” enforces the simulation of the full (unreduced) network in order to determine all isotopomer fractions in the network. The simulation element may contain a <b>variables</b> element. This lists the choice of fluxes (and poolsizes, in case of INST simulation) including their initial values which represent the free parameters of the stoichiometric system.
+<p align="justify">The attribute "methode" and "type" are specific to the capabilities of the simulator and are therefore not generally valid. Especially, for the JuFLUX simulator, the choice of the simulation method, Cumomer or EMU, may be influenced by attribute "method". The default value is "auto", which selects the optimal simulation method for the specified measurement model. Other possible choices are "cumomer" (for all NMR and MS/MS measurements) and "emu" (for MS measurements). The attribute "type" controls the behavior of network reduction. Setting type=”auto” means that the measurement group specifications are examined in orderto reduce the computational effort as much as possible. In this case, ideally, only the isotopomer fractions required for the simulation of the measurements are computed. While type=”full” enforces the simulation of the full (unreduced) network in order to determine all isotopomer fractions in the network. The simulation element may contain a <b>variables</b> element. This lists the choice of fluxes (and poolsizes, in case of INST simulation) including their initial values which represent the free parameters of the stoichiometric system.
 
 ```xml
 <variables> 
@@ -885,11 +885,12 @@ Clone the FluxML repository and build it with GNU autotools
 `configure` takes a couple of options, which are available at tab-complete. The last step might require root privileges, depending on what `PREFIX` is set to. 
 <!-- LibFluxML requires the XML parser library "Xerces" to do low-level read/write operations on XML. It can use any one of three XML parser libraries -->
 
-The following software is requiered in order to build the repository:
+The following software is required in order to build the repository:
 
 * blas/lapack
-* python
+* Python
 * Xerces
+* boost
 * bison
 * patch
 * re2c

@@ -17,13 +17,13 @@ Update the FluxML Level of an fml file. To update a file from level 1 to 2 run:
 
 ### ftbl2fml
 
-Converts a file from the old tabular ftbl format to fml. There are many options availble but the basic usage is:
+Converts a file from the old tabular ftbl format to fml. There are many options available but the basic usage is:
 
 `ftbl2fml -i ftbl_file.csv -o fml_file.fml`
 
 ### sbml2fml fml2sbml
 
-Converts sbml files to fml files and vice versa. Note that the atom mapping is lost, wehn converting an fml file to an sbml file!
+Converts sbml files to fml files and vice versa. Note that the atom mapping is lost, when converting an fml file to an sbml file!
 
 `sbml2fml -i model.xml -o model.fml`
 `fml2sbml -i model.fml -o model.yml`
