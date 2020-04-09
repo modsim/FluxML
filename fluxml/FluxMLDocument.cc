@@ -93,6 +93,7 @@ FluxMLDocument::FluxMLDocument(const char * filename)
 	{
 		fERROR("FluxML parsing error: %s", (char const*)e);
 		delete reader_;
+		throw(xml::XMLException(e));
 	}
         
         // Container-Objekte erzeugen:
