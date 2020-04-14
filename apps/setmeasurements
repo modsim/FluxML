@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # coding: utf-8
 
 #
@@ -15,29 +15,13 @@ import re
 import flux
 import xml.dom.minidom as DOM
 import subprocess
+import xml.etree.ElementTree as ET
 
-if (sys.hexversion>>16) < 0x204:
-	raise 'requiring Python 2.4 or newer'
-
-try:
-	# Python >= 2.5
-	import xml.etree.cElementTree as ET
-except ImportError:
-	try:
-		# Python >= 2.5
-		import xml.etree.ElementTree as ET
-	except ImportError:
-		try:
-			# ElementTree (effbot)
-			import elementtree.ElementTree as ET
-		except ImportError:
-			# ElementTree via libxml2
-			import lxml.etree as ET
 
 fwdsim_ns = 'http://www.13cflux.net/fwdsim'
 
 def usage():
-	print '''SETMEASUREMENTS -- FWDSIM, FluxML or CSV to FluxML filter (c) S. Miebach 2011
+	print('''SETMEASUREMENTS -- FWDSIM, FluxML or CSV to FluxML filter (c) S. Miebach 2011
 SYNTAX: setmeasurements (-i <file> -F <file>|-X <file>|-C <file> -o <fluxml>)
                [-c <cfg>] [-f <str>] [-l <str>] [-R <num>] -[A <num>]
   -i <file>   input FluxML file (stdin if omitted)
@@ -52,7 +36,7 @@ SYNTAX: setmeasurements (-i <file> -F <file>|-X <file>|-C <file> -o <fluxml>)
   -f R        filter fluxes by using the regular expression R
               (default = no fluxes are imported)
   -l R        filter measurements by using the regular expression R
-              (default = all measurements are imported)'''
+              (default = all measurements are imported)''')
 
 def xlateUnknownsIntoIsotopomer(cfg_val_pairs):
 	# keine Atome im Metaboliten?
@@ -349,7 +333,7 @@ def patchFMLwithFWD(doc, cfgname, label, fluxes, liste_inputs, cumomer_sim, opt_
 			data.appendChild(doc.createTextNode('\n      '))
 
 	if not success:
-		print 'configuration "' + cfgname + '" doesn\'t exists!'
+		print('configuration "' + cfgname + '" doesn\'t exists!')
 	return cleanNode(doc)
 
 def importCSV(opt_csvfile):

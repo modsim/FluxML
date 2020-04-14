@@ -58,8 +58,8 @@ AC_CHECK_SIZEOF([size_t])
 dnl -------------------------------------------
 dnl     Python support
 dnl -------------------------------------------
-AM_PATH_PYTHON(2.7)
-dnl AC_PYTHON_DEVEL(>= '2.7')
+AM_PATH_PYTHON(3.5)
+dnl AC_PYTHON_DEVEL(>= '3.5')
 
 dnl -------------------------------------------
 dnl     install support

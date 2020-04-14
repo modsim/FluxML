@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 #
@@ -12,24 +12,8 @@ import getopt
 import re
 from xml.dom.minidom import getDOMImplementation
 import flux
+import xml.etree.ElementTree as ET
 
-if (sys.hexversion>>16) < 0x204:
-	raise 'requiring Python 2.4 or newer'
-
-try:
-	# Python >= 2.5
-	import xml.etree.cElementTree as ET
-except ImportError:
-	try:
-		# Python >= 2.5
-		import xml.etree.ElementTree as ET
-	except ImportError:
-		try:
-			# ElementTree (effbot)
-			import elementtree.ElementTree as ET
-		except ImportError:
-			# ElementTree via libxml2
-			import lxml.etree as ET
 
 #
 # Flags (defaults)

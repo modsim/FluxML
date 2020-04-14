@@ -1,27 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import getopt
 import sys
 import re
 import flux
+import xml.etree.ElementTree as ET
 
-if (sys.hexversion>>16) < 0x204:
-	raise 'requiring Python 2.4 or newer'
-
-try:
-	# Python >= 2.5
-	import xml.etree.cElementTree as ET
-except ImportError:
-	try:
-		# Python >= 2.5
-		import xml.etree.ElementTree as ET
-	except ImportError:
-		try:
-			# ElementTree (effbot)
-			import elementtree.ElementTree as ET
-		except ImportError:
-			# ElementTree via libxml2
-			import lxml.etree as ET
 
 fluxml_ns = ''
 poolmap = {}
@@ -45,9 +29,9 @@ def scan_reactions(fluxml):
 		numreactions = numreactions + 1
 
 def put_help():
-	print '''FMLSTAT -- FluxML statistics (c) Michael Weitzel 2009-2010
+	print('''FMLSTAT -- FluxML statistics (c) Michael Weitzel 2009-2010
 SYNTAX: fmlstat [-i <file> ]
-  -i <file>	FluxML input file (stdin if omitted)'''
+  -i <file>	FluxML input file (stdin if omitted)''')
 
 
 def main():
@@ -56,7 +40,8 @@ def main():
 	try:
 		opts, args = getopt.getopt(sys.argv[1:],"i:h",['infml','help'])
 	except getopt.GetoptError:
-		print "Parameterfehler"
+		print("Error with command line parameters")
+		put_help()
 		sys.exit(1)
 
 	opt_infmlfile = None
@@ -68,14 +53,14 @@ def main():
 			put_help();
 			sys.exit(0)
 		else:
-			print o
-			print a
+			print(o)
+			print(a)
 	
 	infile = sys.stdin
 	if opt_infmlfile != None:
 		infile = open(opt_infmlfile, 'r')
 	else:
-		print >>sys.stderr, 'Reading from standard input ...'
+		print('Reading from standard input ...', file=sys.stderr)
 	
 	fluxml_tree = ET.parse(infile)
 	fluxml = fluxml_tree.getroot()
@@ -104,12 +89,12 @@ def main():
 		isos = isos + (1 << poolmap[pool])
 		cumos = cumos + (1 << poolmap[pool]) - 1
 
-	print 'total: %i cumos (%i isos)' % (cumos,isos,)
-	print '       %i atoms, %i pools, %i reactions' % (levels[1],levels[0],
-		numreactions)
-	print 'cascade:'
+	print('total: %i cumos (%i isos)' % (cumos,isos,))
+	print('       %i atoms, %i pools, %i reactions' % (levels[1],levels[0],
+		numreactions))
+	print('cascade:')
 	for L in range(1,numlevels+1):
-		print '%2i, %i' % (L,levels[L])
+		print('%2i, %i' % (L,levels[L]))
 
 if __name__ == "__main__":
 	main()

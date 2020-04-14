@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # coding: utf-8
 import sys
 import getopt
@@ -8,24 +8,8 @@ from subprocess import *
 from time import strftime, gmtime
 from xml.dom.minidom import getDOMImplementation
 import flux
+import xml.etree.ElementTree as ET
 
-if (sys.hexversion>>16) < 0x204:
-	raise 'requiring Python 2.4 or newer'
-
-try:
-	# Python >= 2.5
-	import xml.etree.cElementTree as ET
-except ImportError:
-	try:
-		# Python >= 2.5
-		import xml.etree.ElementTree as ET
-	except ImportError:
-		try:
-			# ElementTree (effbot)
-			import elementtree.ElementTree as ET
-		except ImportError:
-			# ElementTree via libxml2
-			import lxml.etree as ET
 
 sbml_ns = ''
 fUseValidation = True
@@ -67,11 +51,11 @@ def convert(sbml,doc,fluxml):
 	species_id_map = {}
 
 	# Für Python 2.4 siehe cg2gml.py ...
-	model = sbml.getiterator('{%s}model' % sbml_ns).next()
+	model = next(sbml.getiterator('{%s}model' % sbml_ns))
 
 	try:
-		listOfSpecies = model.getiterator('{%s}listOfSpecies'
-				% sbml_ns).next()
+		listOfSpecies = next(model.getiterator('{%s}listOfSpecies'
+				% sbml_ns))
 	except StopIteration:
 		flux.error('SBML model does not contain a reaction network')
 		sys.exit(1)
@@ -111,8 +95,8 @@ def convert(sbml,doc,fluxml):
 		# zunächst ...
 		input_pools[species.get('id')] = True
 
-	listOfReactions = model.getiterator('{%s}listOfReactions'
-			% sbml_ns).next()
+	listOfReactions = next(model.getiterator('{%s}listOfReactions'
+			% sbml_ns))
 	lor = listOfReactions.getiterator('{%s}reaction' % sbml_ns)
 	for react in lor:
 		reaction = doc.createElement('reaction')
@@ -128,8 +112,8 @@ def convert(sbml,doc,fluxml):
 			reaction.setAttribute('bidirectional','false')
 
 		try:
-			loe = react.getiterator('{%s}listOfReactants' %
-					sbml_ns).next()
+			loe = next(react.getiterator('{%s}listOfReactants' %
+					sbml_ns))
 		except StopIteration:
 			flux.error("reactions without educts found -- probably not a reaction network")
 			sys.exit(1)
@@ -149,8 +133,8 @@ def convert(sbml,doc,fluxml):
 			reaction.appendChild(reduct)
 
 		try:
-			lop = react.getiterator('{%s}listOfProducts' %
-					sbml_ns).next()
+			lop = next(react.getiterator('{%s}listOfProducts' %
+					sbml_ns))
 		except StopIteration:
 			# Reaktionen ohne Produkte sind erlaubt (Abflüsse)
 			noutputs = noutputs + 1

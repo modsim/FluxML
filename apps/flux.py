@@ -152,31 +152,31 @@ def which(fn):
 def info(msg):
 	"""prints an info message"""
 	if os.isatty(sys.stderr.fileno()):
-		print >>sys.stderr, ('\033[39m' + msg + '\033[0m')
+		print(('\033[39m' + msg + '\033[0m'), file=sys.stderr)
 	else:
-		print >>sys.stderr, ('I: ' + msg)
+		print(('I: ' + msg), file=sys.stderr)
 
 
 def notice(msg):
 	"""prints a notice"""
 	if os.isatty(sys.stderr.fileno()):
-		print >>sys.stderr, ('\033[32m' + msg + '\033[0m')
+		print(('\033[32m' + msg + '\033[0m'), file=sys.stderr)
 	else:
-		print >>sys.stderr, ('N: ' + msg)
+		print(('N: ' + msg), file=sys.stderr)
 
 def warning(msg):
 	"""prints a warning message"""
 	if os.isatty(sys.stderr.fileno()):
-		print >>sys.stderr, ('\033[33mWarning: ' + msg + '\033[0m')
+		print(('\033[33mWarning: ' + msg + '\033[0m'), file=sys.stderr)
 	else:
-		print >>sys.stderr, ('W: ' + msg)
+		print(('W: ' + msg), file=sys.stderr)
 
 def error(msg):
 	"""prints an error message"""
 	if os.isatty(sys.stderr.fileno()):
-		print >>sys.stderr, ('\033[31mError: ' + msg + '\033[0m')
+		print(('\033[31mError: ' + msg + '\033[0m'), file=sys.stderr)
 	else:
-		print >>sys.stderr, ('E: ' + msg)
+		print(('E: ' + msg), file=sys.stderr)
 
 # -------------------------------------------------------------------------
 

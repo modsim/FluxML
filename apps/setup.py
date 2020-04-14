@@ -11,11 +11,12 @@ setup(	name='flux',
 	author_email='info@13cflux.net',
 	url='https://www.13cflux.net',
 	py_modules=['flux'],
+	license='MIT License',
 	scripts=['fmlstats',
 		'setparameters',
 		'setmeasurements',
 		'ftbl2fml','sbml2fml','fml2sbml',
 		'fmlupdate', 'multiply_fml',
-                'setinputs']
+		'setinputs']
 	)
 

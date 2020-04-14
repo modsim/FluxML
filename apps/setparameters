@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # coding: utf-8
 
 #
@@ -13,29 +13,13 @@ import getopt
 import sys
 import csv
 import flux
+import xml.etree.ElementTree as ET
 
 try:
 	import h5py
 	have_h5py = True
 except ImportError:
 	have_h5py = False
-
-if (sys.hexversion>>16) < 0x204:
-	raise 'requiring Python 2.4 or newer'
-try:
-	# Python >= 2.5
-	import xml.etree.cElementTree as ET
-except ImportError:
-	try:
-		# Python >= 2.5
-		import xml.etree.ElementTree as ET
-	except ImportError:
-		try:
-			# ElementTree (effbot)
-			import elementtree.ElementTree as ET
-		except ImportError:
-			# ElementTree via libxml2
-			import lxml.etree as ET
 
 fmlNS = 'http://www.13cflux.net/fluxml'
 fwdNS = 'http://www.13cflux.net/fwdsim'
@@ -52,7 +36,7 @@ class msgType:
 
 def usage():
 	global have_h5py
-	print(msgType.HEADER +'''"********************************************************************************"
+	print((msgType.HEADER +'''"********************************************************************************"
 "********************************************************************************"
 "**  Setting Free Parameters Tool: (c) 2010 Michael Weitzel (stationary MFA)   **"
 "**                                (c) 2015 Salah Azzouzi (non-stationary MFA) **"
@@ -75,13 +59,13 @@ def usage():
   "# Specific Parameters:"
   + msgType.WHITE + '''
   -C/--CSV <file>         CSV data file
-  -F/--FWD <file>         FWDSIM data file''')
+  -F/--FWD <file>         FWDSIM data file'''))
 	if have_h5py:
 		print('''  -H/--HDF5D <file>       HDF5 data file
   -D/--HDF5V <h5name>     HDF5 path to parameters values (default:'/parameter/data')
   -N/--HDF5N <h5name>     HDF5 path to parameters names (default:'/parameter/names')\n''')
 	else:
-		print(msgType.WARNING+'''(python-h5py package is missing on this machine)'''+ msgType.WHITE)
+		print((msgType.WARNING+'''(python-h5py package is missing on this machine)'''+ msgType.WHITE))
 
 def parseFreeFluxesHDF5(hdf5file,line,h5vars,h5data):
 	line = line - 1
@@ -174,7 +158,7 @@ def parseFreeFluxesCSV(csvfile,line):
 				found = True
 				break
 			i = i+1
-	except csv.Error, e:
+	except csv.Error as e:
 		flux.error('CSV file line %d: %s' % (reader.line_num, e))
 		sys.exit(1)
 	if not found:
@@ -333,7 +317,7 @@ def main():
 				opt_line = int(a)
 				if opt_line < 1:
 					raise ValueError(opt_line)
-			except ValueError, e:
+			except ValueError as e:
 				flux.error('parsing line number: %s' % e)
 				sys.exit(1)
 		elif o in ('-f','--force'):

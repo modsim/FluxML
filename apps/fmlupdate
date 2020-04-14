@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 import xml.dom.minidom
@@ -7,45 +7,28 @@ import dateutil
 import getopt
 import sys
 import re
-import StringIO
+import io
 import flux
+import xml.etree.ElementTree as ET
 
-
-if (sys.hexversion>>16) < 0x204:
-	raise 'requiring Python 2.4 or newer'
-
-try:
-	# Python >= 2.5
-	import xml.etree.cElementTree as ET
-except ImportError:
-	try:
-		# Python >= 2.5
-		import xml.etree.ElementTree as ET
-	except ImportError:
-		try:
-			# ElementTree (effbot)
-			import elementtree.ElementTree as ET
-		except ImportError:
-			# ElementTree via libxml2
-			import lxml.etree as ET
 
 # XML-Lint (besseres pretty-printing)
 prg_xmllint = 'xmllint'
 
 def usage():
-	print '''FMLUPDATE -- making a FLuxML document up to date (c) Salah Azzouzi 2018
+	print('''FMLUPDATE -- making a FLuxML document up to date (c) Salah Azzouzi 2018
 SYNTAX: fmlupdate -i <fwd file> -o <fml file>
   -i,--fluxml <fml file>    input FluxML (fml) file
   -o,--out <fml file>       name of output FluxML file (stdout if omitted)
   -l,--level <val>          target FluxML level (1, 2 or 3)
   -c,--configure <cfg>      FluxML configuration ("default" if omitted)
-  '''
+  ''')
 
 
 def renameElement(doc,element,newname):
 	# flux.notice('renaming element "%s" to "%s" ...' % (element.nodeName,newname))
 	newelem = doc.createElement(newname)
-	for attr in element.attributes.items():
+	for attr in list(element.attributes.items()):
 		newelem.setAttribute(attr[0],attr[1])
 	while element.hasChildNodes():
 		newelem.appendChild(element.firstChild)
