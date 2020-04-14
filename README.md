@@ -933,10 +933,21 @@ int main(int argc, char* argv[])
 		cout << endl << "Usage: readFluxML filename" << endl << endl;
 		return 1;
 	}
-
+	
+	/** make sure error Messages go somewhere **/
+  PUBLISHLOG(stderr_log);
+  
 	const char* filename = argv[1];
 	xml::FluxMLDocument * fml = 0;
-	fml = new xml::FluxMLDocument(filename);
+  try
+  {
+    fml = new xml::FluxMLDocument(filename);
+  }
+  catch (xml::XMLException& e)
+  {
+    cerr << "Problem with opening File " << filename << ":" << endl << e.toString() << endl;
+    exit(1);
+  }
 	cout << make_section_head("metabolites") << endl;
 	/** print network metabolites **/
 	charptr_map<data::Pool*> * poolMap = fml->getPoolMap();
