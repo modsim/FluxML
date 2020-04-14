@@ -155,7 +155,6 @@ void FluxMLInput::parseInput(DOMNode * input)
             
             // Profile-Bedingungen parsen
             U2A utf_profile(profileAttr->getValue());
-            char const anon[] = "profile_condition";
             charptr_array expr_list = charptr_array::split(utf_profile,",");
             charptr_array::const_iterator i;
             double last_time = -1;

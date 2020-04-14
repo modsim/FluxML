@@ -353,7 +353,7 @@ void MMDocument::checkValues(DOMNode * data)
 				MGroupMIMS const & G_ = static_cast< MGroupMIMS & >(*G);
                                 std::vector<int *>::const_iterator wi;
 				std::vector<int *> const & weights_vec = G_.getWeights();
-                                int dim = G_.getDim();
+                                size_t dim = G_.getDim();
                                 for (size_t i=0; i<dim; ++i)
                                 {
                                     std::vector<int> weigths;
@@ -490,7 +490,7 @@ void MMDocument::validate_MGroupMIMS(
         charptr_map< int >::const_iterator ic;
         std::vector<int *> const & weights_vec = G->getWeights();
         charptr_map< int > const & iso_cfg = G->getIsotopesCfg();
-        int dim = G->getDim();
+        size_t dim = G->getDim();
         
         for (size_t i=0; i<dim; ++i)
         {
@@ -708,6 +708,12 @@ void MMDocument::validate(
 						{
 						MGroup13CNMR * g = static_cast< MGroup13CNMR * >(SG);
 						validate_MGroup13CNMR(g,pools,reactions);
+						}
+						break;
+					case MGroup::mg_MIMS:
+						{
+						MGroupMIMS * g = static_cast< MGroupMIMS * >(SG);
+						validate_MGroupMIMS(g,pools,reactions);
 						}
 						break;
 					case MGroup::mg_CUMOMER:

@@ -31,7 +31,6 @@ void FluxMLConfiguration::parseConfiguration(DOMNode * node)
 	DOMNode * child, * childchild;
 	DOMNamedNodeMap * nnm;
         DOMAttr * nameAttr, * stationaryAttr;
-        char * end_ptr;
 	std::string comment;
 	data::Configuration * cfg;
 	bool is_stationary = true;

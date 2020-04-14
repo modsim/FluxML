@@ -25,26 +25,26 @@ InputPool::InputPool(
 	  iso_values_(mask),
 	  cumo_values_(mask),
 	  emu_values_(mask),
-          profiles_(mask),
 	  purities_(mask),
 	  finished_(false),
 	  natural_(true),
-	  profile_flag(false),
-	  cost_(0.) { }
+	  cost_(0.), 
+    profiles_(mask),
+    profile_flag(false){ }
 
 InputPool::InputPool(InputPool const & copy)
 	: id_(strdup_alloc(copy.id_)),
 	  name_(strdup_alloc(copy.name_)),
 	  pool_type_(copy.pool_type_),
 	  iso_values_(copy.iso_values_),
-	  profiles_(copy.profiles_),
 	  cumo_values_(copy.cumo_values_),
 	  emu_values_(copy.emu_values_),
 	  purities_(copy.purities_),
 	  finished_(copy.finished_),
-	  profile_flag(copy.profile_flag),
 	  natural_(copy.natural_),
-	  cost_(copy.cost_) { }
+	  cost_(copy.cost_),
+	  profiles_(copy.profiles_),
+	  profile_flag(copy.profile_flag){ }
 
 InputPool::~InputPool() { 
                 delete[] id_; 

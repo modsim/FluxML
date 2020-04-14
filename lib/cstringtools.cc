@@ -150,7 +150,6 @@ int strtoutf8(char const * nptr, char ** endptr, bool compress)
 
 int dbl2str(char * s, double f, size_t len)
 {
-	char buf[32];
 	if (len < 32) { if (len) *s = '\0'; return -1; }
 	std::stringstream ss;
 	ss << f;

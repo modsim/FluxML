@@ -22,9 +22,9 @@ MGroup::MGroup(MGroup const & copy)
   ts_set_(copy.ts_set_),
   scale_auto_(copy.scale_auto_),
   dim_(copy.dim_),
-  spec_(0),
-  iso_cfg_(copy.iso_cfg_),          
-  error_model_(0)
+  spec_(0),          
+  error_model_(0),
+  iso_cfg_(copy.iso_cfg_)
 {
 	if (copy.group_id_)
 		group_id_ = strdup_alloc(copy.group_id_);
@@ -2382,6 +2382,8 @@ double MGroupFlux::evaluateRek(
 	case symb::et_op_lt:
 	case symb::et_op_gt:
 	case symb::et_op_diff:
+  case symb::et_op_sin:
+  case symb::et_op_cos:
 		fTHROW(XMLException,"Error: invalid operator (%s) found flux measurement formula",
 			E->nodeToString().c_str());
 	}
@@ -2469,6 +2471,8 @@ double MGroupPool::evaluateRek(
 	case symb::et_op_lt:
 	case symb::et_op_gt:
 	case symb::et_op_diff:
+  case symb::et_op_sin:
+  case symb::et_op_cos:
 		fTHROW(XMLException,"Error: invalid operator (%s) found flux measurement formula",
 			E->nodeToString().c_str());
 	}

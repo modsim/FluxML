@@ -40,15 +40,15 @@ ConstraintSystem::ConstraintSystem(
 	std::list< Constraint > const & cEqList,
 	std::list< Constraint > const & cInEqList, 
         bool stationary
-	) : S_(S), fFluxes_net_(fFluxes_net), fFluxes_xch_(fFluxes_xch), 
-            is_stationary_(stationary), /*cfg_(cfg),*/
+	) : S_(S), fFluxes_net_(fFluxes_net), fFluxes_xch_(fFluxes_xch), /*cfg_(cfg),*/
 	    cEqList_(cEqList), cInEqList_(cInEqList),
 	    validation_state_(cm_unvalidated),
 	    vnet_(S_.cols()), vxch_(S_.cols()),
 	    Pcnet_(S_.cols()), Pcxch_(S_.cols()),
 	    v_type_net_(S_.cols()), v_type_xch_(S_.cols()),
 	    cons_tol_(1.e-9),fluxes_dirty_(true),
-	    change_count_(0u),
+	    change_count_(0u), 
+            is_stationary_(stationary),
             fPools_size_(fPools_size),
             vpool_(S_.rows(),1.),
 	    Pcpool_(S_.rows()),

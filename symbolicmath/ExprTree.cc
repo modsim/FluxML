@@ -659,6 +659,21 @@ ExprTree * ExprTree::deval(
 				)
 			));
 		break;
+  case et_op_sin:
+    // sin(f(x)) => f'(x)*cos(f(x))
+    Dx = mul(
+         Lval()->deval(x,dsymmap),
+         EN_(cos(clone(Lval())))
+         );
+    break;
+  case et_op_cos:
+    // cos(f(x)) => -f'(x)*cos(f(x))
+    Dx = minus(
+         EN_(mul(
+           Lval()->deval(x,dsymmap),
+           EN_(cos(clone(Lval())))
+         )));
+    break;
 	case et_op_diff:
 		// d(diff(f,y))/dx => diff(diff(f,y),x)
 		Dx = diff(clone(this),x);

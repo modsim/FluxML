@@ -53,7 +53,7 @@ public:
 	 * @param poolsize die Kapazität des Pools (Standard ist 0)
 	 */
 	inline Pool(std::string const & name, int natoms, double poolsize, std::string const & cfg)
-		: name_(name), natoms_(natoms), poolsize_(poolsize), cfg_(cfg),
+		: name_(name), cfg_(cfg), natoms_(natoms), poolsize_(poolsize),
 		  used_in_reaction_(false), has_efflux_(false) 
                 {                    
                     parseIsotopeCfgAttribute(cfg_);                    
@@ -96,12 +96,12 @@ public:
 	 *
 	 * @return Anzahl der Isotope im Pool
 	 */
-	inline int getNumOfActiveIsotope() const 
+	inline size_t getNumOfActiveIsotope() const 
         {
             if(iso_cfg_.size()==0)
                 return 1;
             
-            int counter=0;
+            size_t counter=0;
             for(charptr_map< int >::const_iterator i = iso_cfg_.begin();
                    i!=iso_cfg_.end(); i++)
             {

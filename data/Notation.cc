@@ -389,7 +389,7 @@ int parse_MIMS_spec(
 {
 	char * old_s;
 	int lo, hi, catoms = 0;
-        int numbIsotopes; // anzahl der verwendeten Isotopes
+        size_t numbIsotopes; // anzahl der verwendeten Isotopes
 	int status;
 	Lexeme L;
 	BitArray old_mask;
