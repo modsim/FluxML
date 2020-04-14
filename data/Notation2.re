@@ -2,20 +2,17 @@
 // Rueckgabewerte: empty=0, short=1, long=2
 // und -1 falls ein Fehler aufgetreten ist oder die Notation nicht erkannt
 // wurde.
-int identify_perm_spec(char const * s)
+int identify_perm_spec(char const * YYCURSOR)
 {
-	char const * q = 0, * p = s;
-#define YYCTYPE		char
-#define YYCURSOR	p
-#define YYLIMIT		p
-#define YYMARKER	q
-#define YYFILL(n)
+	char const * YYMARKER;
 
 	// keine Notation
-	if (s == 0 || *s == '\0')
+	if (YYCURSOR == 0 || *YYCURSOR == '\0')
 		return 0;
 
 /*!re2c
+re2c:define:YYCTYPE = char;
+re2c:yyfill:enable = 0;
 spc	= [ \t\n\r\v\f];
 atom	= [CHNOS];
 letter	= [A-Za-z];

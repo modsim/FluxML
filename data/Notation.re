@@ -2,16 +2,12 @@
 // Rueckgabewerte: MS=1,MSMS=2,NMR1H=3,NMR13C=4,generic=5,MI_MS=6
 // und -1 falls ein Fehler aufgetreten ist oder die Notation nicht erkannt
 // wurde
-static int identify_notation(char *s)
+static int identify_notation(const char *YYCURSOR)
 {
-	char *q = 0;
-	char *p = s;
-#define YYCTYPE		char
-#define YYCURSOR	p
-#define YYLIMIT		p
-#define YYMARKER	q
-#define YYFILL(n)
+	const char *YYMARKER;
 /*!re2c
+re2c:define:YYCTYPE = char;
+re2c:yyfill:enable = 0;
 ws	= [ \t\n]+;
 let	= [A-Za-z_];
 dig	= [0-9];
@@ -72,6 +68,9 @@ tms	{
 		return 6;
 	return -1;
 	}
+*       {
+        return -1;
+        }
 */
 	return -1;
 }
