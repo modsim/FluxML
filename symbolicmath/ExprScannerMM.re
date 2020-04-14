@@ -6,15 +6,19 @@
 //
 int et_lex_mm()
 {
-	char *q = 0;
-	char *p = et_inputstring;
-#define YYCTYPE         char
-#define YYCURSOR        p
-#define YYLIMIT         p
-#define YYMARKER        q
-#define YYFILL(n)
+  char *YYMARKER;
+  char *YYCURSOR = et_inputstring;
+// 	char *q = 0;
+// 	char *p = et_inputstring;
+// #define YYCTYPE         char
+// #define YYCURSOR        p
+// #define YYLIMIT         p
+// #define YYMARKER        q
+// #define YYFILL(n)
 start:
 /*!re2c
+re2c:define:YYCTYPE = char;
+re2c:yyfill:enable = 0;
 ws	= [ \t\n\r\v\f]+;
 let	= [A-Za-z_];
 dig	= [0-9];
@@ -86,6 +90,7 @@ ws	{
 	goto start;
 	}
 "\000"	{ return 0; }
+*       {}
 */
 	fTHROW(ExprParserException,"scanner error");
 	return -1;

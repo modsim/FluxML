@@ -68,9 +68,7 @@ tms	{
 		return 6;
 	return -1;
 	}
-*       {
-        return -1;
-        }
+*       {}
 */
 	return -1;
 }

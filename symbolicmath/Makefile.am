@@ -3,7 +3,7 @@ ExprParser.cc : ExprParser.y ExprScannerMM.inc
 	touch $@
 
 ExprScannerMM.inc : ExprScannerMM.re
-	$(RE2C) -o $@ $<
+	$(RE2C) -W -o $@ $<
 
 BUILT_SOURCES = ExprParser.cc
 EXTRA_DIST = ExprParser.y ExprScannerMM.re ExprScannerMM.inc

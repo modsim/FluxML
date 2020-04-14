@@ -25,6 +25,7 @@ longn	= spc*atom[#]num[@]alnum+(spc+atom[#]num[@]alnum+)*spc*;
 
 shortn	{ if (YYCURSOR!=0 and *(YYCURSOR)=='\0') return 1; return -1; }
 longn	{ if (YYCURSOR!=0 and *(YYCURSOR)=='\0') return 2; return -1; }
+*       {}
 */
 	return -1;
 }
