@@ -2477,6 +2477,18 @@ public:
 	 * @return neuer Prüfsummen-Wert
 	 */
 	uint32_t computeCheckSum(uint32_t crc, int crc_scope) const;
+  
+  /**
+   * Returns the mask of 1s
+   * note that the set of 1s is disjoint from the set of Xs,
+   * but their union is not necessary the whole molecule 
+   */
+  const BitArray& getMask() const { return mask_;};
+  
+  /**
+   *  Returns the mask of Xs
+   */
+  const BitArray& getXMask() const { return xmask_;};
 
 }; // class MGroupCumomer
 
