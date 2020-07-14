@@ -406,8 +406,8 @@ void MMDocument::checkValues(DOMNode * data)
 				for (p=0; posns[p] != -1; p++)
 					if (G_.getMValue(*si,posns[p],types[p])==0)
 						fTHROW(XMLException,data,
-							"13C-NMR measurement value missing: group=%s timestamp=%g, position=%i, type=%i",
-							G_.getGroupId(),*si,posns[p],types[p]);
+							"13C-NMR measurement value missing: group=%s timestamp=%g, position=%i, type=%s",
+							G_.getGroupId(),*si,posns[p],MGroup13CNMR::typeToString(types[p]).c_str());
 				}
 				break;
 			case MGroup::mg_GENERIC:
@@ -490,6 +490,17 @@ void MMDocument::validate_MGroupMIMS(
         charptr_map< int >::const_iterator ic;
         std::vector<int *> const & weights_vec = G->getWeights();
         charptr_map< int > const & iso_cfg = G->getIsotopesCfg();
+
+        if (weights_vec.size() != iso_cfg.size())
+        {
+        	fTHROW(XMLException, "MIMS measurement group \"%s\": "
+        			"number of isotopes in measurement (%lu) is not in line with"
+        			" number of istopes in metabolite %s (%lu: %s)"
+        			, G->getGroupId(), weights_vec.size()
+					, G->getMetaboliteName(), iso_cfg.size()
+					, iso_cfg.size() ? iso_cfg.getKeys().concat(", ") : "X"
+                                );
+        }
         size_t dim = G->getDim();
         
         for (size_t i=0; i<dim; ++i)
@@ -692,6 +703,12 @@ void MMDocument::validate(
 						validate_MGroupMS(g,pools,reactions);
 						}
 						break;
+					case MGroup::mg_MIMS:
+						{
+						MGroupMIMS * g = static_cast< MGroupMIMS * >(SG);
+						validate_MGroupMIMS(g,pools,reactions);
+						}
+						break;
 					case MGroup::mg_MSMS:
 						{
 						MGroupMSMS * g = static_cast< MGroupMSMS * >(SG);
@@ -708,12 +725,6 @@ void MMDocument::validate(
 						{
 						MGroup13CNMR * g = static_cast< MGroup13CNMR * >(SG);
 						validate_MGroup13CNMR(g,pools,reactions);
-						}
-						break;
-					case MGroup::mg_MIMS:
-						{
-						MGroupMIMS * g = static_cast< MGroupMIMS * >(SG);
-						validate_MGroupMIMS(g,pools,reactions);
 						}
 						break;
 					case MGroup::mg_CUMOMER:

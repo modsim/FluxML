@@ -3083,6 +3083,8 @@ protected:
 			}
 			return Stype(0.);
 			}
+		case symb::et_op_sin:
+		case symb::et_op_cos:
 		case symb::et_op_pow:
 //			return ::pow(L,R);
 		case symb::et_op_sqrt:
@@ -3222,6 +3224,8 @@ protected:
 			}
 			return Stype(0.);
 			}
+		case symb::et_op_sin:
+		case symb::et_op_cos:
 		case symb::et_op_pow:
 //			return ::pow(L,R);
 		case symb::et_op_sqrt:

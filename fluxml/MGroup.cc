@@ -22,7 +22,7 @@ MGroup::MGroup(MGroup const & copy)
   ts_set_(copy.ts_set_),
   scale_auto_(copy.scale_auto_),
   dim_(copy.dim_),
-  spec_(0),          
+  spec_(0),
   error_model_(0),
   iso_cfg_(copy.iso_cfg_)
 {
@@ -460,28 +460,28 @@ bool MGroupMS::getMValuesStdDev(
 	) const
 {
 	if (not isTimeStamp(ts))
-		return false;
+            return false;
 	
 	int i = 0;
 	int const * w = weights_;
 
 	if (x_meas.dim() != dim_)
-		x_meas = MVector(getNumWeights());
+            x_meas = MVector(getNumWeights());
 	if (x_stddev.dim() != dim_)
-		x_stddev = MVector(getNumWeights());
+            x_stddev = MVector(getNumWeights());
 	
 	while (*w != -1)
 	{
-		MValue const * mv = getMValue(ts,*w);
-		// Fehlende Messwerte sind nicht erlaubt!
-		if (mv == 0)
-			fTHROW(XMLException,
-				"fatal: missing measurement values detected"
-				);
+            MValue const * mv = getMValue(ts,*w);
+            // Fehlende Messwerte sind nicht erlaubt!
+            if (mv == 0)
+                    fTHROW(XMLException,
+                            "fatal: missing measurement values detected"
+                            );
 
-		x_meas.set(i,mv->get());
-		x_stddev.set(i,mv->getStdDev());
-		w++; i++;
+            x_meas.set(i,mv->get());
+            x_stddev.set(i,mv->getStdDev());
+            w++; i++;
 	}
 	return true;
 }
@@ -705,7 +705,7 @@ MGroupMIMS * MGroupMIMS::parseSpec(char const * s, int * state)
             std::ostringstream ostr;
             for(wi=weights_vec.begin();wi!=weights_vec.end();wi++)
                 ostr<< (wi!=weights_vec.begin()?",":"") <<(*wi)[i]; 
-            spec.add("%s(%s)", i>0?",":"", ostr.str().c_str());
+            spec.add("%s(%s)", i>0?";":"", ostr.str().c_str());
         }
         
         // Kann verbessert werdendurch dynamische Vektor und Übergabe der Referennz
@@ -1457,6 +1457,7 @@ MGroup13CNMR * MGroup13CNMR::parseSpec(char const * s, int * state)
 		return 0;
 
 	for (i=0; itypelst[i]!=-1; i++);
+	{}
 
 	typelst = new Type[i];
 
@@ -2382,8 +2383,8 @@ double MGroupFlux::evaluateRek(
 	case symb::et_op_lt:
 	case symb::et_op_gt:
 	case symb::et_op_diff:
-  case symb::et_op_sin:
-  case symb::et_op_cos:
+	case symb::et_op_sin:
+	case symb::et_op_cos:
 		fTHROW(XMLException,"Error: invalid operator (%s) found flux measurement formula",
 			E->nodeToString().c_str());
 	}
@@ -2471,8 +2472,8 @@ double MGroupPool::evaluateRek(
 	case symb::et_op_lt:
 	case symb::et_op_gt:
 	case symb::et_op_diff:
-  case symb::et_op_sin:
-  case symb::et_op_cos:
+	case symb::et_op_sin:
+	case symb::et_op_cos:
 		fTHROW(XMLException,"Error: invalid operator (%s) found flux measurement formula",
 			E->nodeToString().c_str());
 	}
