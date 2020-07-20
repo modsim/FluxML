@@ -2016,6 +2016,30 @@ public:
 	/** 13C-NMR Typen */
 	typedef MValue13CNMR::NMR13CType Type;
 
+	static std::string typeToString(const Type& type)
+	{
+		std::string ret;
+		switch (type)
+		{
+		case Type::S:
+			ret = "S";
+			break;
+		case Type::DL:
+			ret = "DL";
+			break;
+		case Type::DR:
+			ret = "DR";
+			break;
+		case Type::DD:
+			ret = "DD";
+			break;
+		case Type::T:
+			ret = "T";
+			break;
+		}
+		return ret;
+	}
+
 protected:
 	/** 13C-NMR Atompositionsliste */
 	int * poslst_;
