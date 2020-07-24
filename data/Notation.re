@@ -22,7 +22,7 @@ ngen	= id"#"[01x]+;
 nnmr1h  = id"#P"num((","|",P")num)*;
 nnmr13c	= id"#"(("S"|"DL"|"DR"|"DD"|"T")num(","num)*)(","(("S"|"DL"|"DR"|"DD"|"T")num(","num)*))*;
 nms	= id range?"#M"num(","num)*;
-nms2	= id range2?"#M"pair(","pair)*;
+nms2	= id range2"#M"pair(","pair)*;
 tms	= id range?"#M"tuple(","tuple)*;
 
 
