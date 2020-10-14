@@ -7,7 +7,6 @@ extern "C"
 {
 #include <stdint.h>
 }
-#include "fluxml_config.h"
 #include "Error.h"
 #include "Combinations.h"
 #include "cstringtools.h"
@@ -2535,7 +2534,7 @@ size_t ExprTree::rebuildHashValue() const
 	if (isOperator())
 	{
 		// Rekursive Berechnung des Hashwertes:
-		union { size_t s; char b[SIZEOF_SIZE_T]; } lhval, rhval;
+		union { size_t s; char b[sizeof(size_t)]; } lhval, rhval;
 		int i;
 
 		lhval.s = Lval()->hashValue();
@@ -2544,12 +2543,12 @@ size_t ExprTree::rebuildHashValue() const
 		else
 			rhval.s = ~(lhval.s);
 
-		for (i=0; i<SIZEOF_SIZE_T; i++)
+		for (i=0; i<sizeof(size_t); i++)
 		{
 			*hval_ += (lhval.b[i]<<4) + (lhval.b[i]>>4);
 			*hval_ *= 11;
 		}
-		for (i=0; i<SIZEOF_SIZE_T; i++)
+		for (i=0; i<sizeof(size_t); i++)
 		{
 			*hval_ += (rhval.b[i]<<4) + (rhval.b[i]>>4);
 			*hval_ *= 11;

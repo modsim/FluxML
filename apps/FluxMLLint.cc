@@ -2,7 +2,6 @@
 #include <string>
 #include <list>
 
-#include "fluxml_config.h"
 #include "Error.h"
 #include "NLgetopt.h"
 

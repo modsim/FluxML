@@ -4,7 +4,6 @@ extern "C"
 {
 #include <stdint.h>
 }
-#include "fluxml_config.h"
 #include "hash_functions.h"
 
 size_t mxkoo_hashf(const mxkoo & ij)
@@ -63,7 +62,7 @@ size_t ptr_hashf(genericptr const & val)
 {
 	size_t a = 0;
 	char const * str = reinterpret_cast< char const* >(&val);
-	for (int i=0; i<SIZEOF_VOID_P; i++)
+	for (int i=0; i< sizeof(void*); i++)
 	{
 		a+=str[i]<<4;
 		a+=str[i]>>4;
@@ -77,7 +76,7 @@ size_t uint_hashf(unsigned int const & val)
 	size_t a = 0;
 	char const * str = reinterpret_cast< char const* >(&val);
 
-	for (int i=0; i<SIZEOF_INT; i++)
+	for (int i=0; i<sizeof(int); i++)
 	{
 		a+=str[i]<<4;
 		a+=str[i]>>4;

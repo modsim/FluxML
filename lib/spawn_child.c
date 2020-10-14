@@ -1,5 +1,3 @@
-#include "fluxml_config.h"
-
 #ifdef P_WIN32
 #warning "spawn_child wird auf der Win32-Plattform nicht unterstuetzt"
 #else
@@ -32,7 +30,8 @@
 FILE * fdopen(int, char const *);
 #endif
 
-#ifdef P_LINUX
+//#ifdef P_LINUX
+#if 1
 extern char ** environ;
 static char *** p_environ = &environ;
 #else

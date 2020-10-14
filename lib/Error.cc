@@ -10,8 +10,6 @@
 #include <cxxabi.h>
 #endif
 
-#include "fluxml_config.h"
-
 extern "C" {
 #include <arpa/inet.h>
 #include <fcntl.h>

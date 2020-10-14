@@ -1,6 +1,5 @@
 #include <cstddef>
 #include <gmpxx.h>
-#include "fluxml_config.h" // MACHEPS für GMatrixOps.h
 #include "Error.h"
 #include "ExprTree.h"
 #include "LinearExpression.h"

@@ -1,0 +1,3 @@
+#cmakedefine FLUX_XML_DIR "@FLUX_XML_DIR@"
+
+

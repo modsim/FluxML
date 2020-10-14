@@ -22,7 +22,7 @@
 #include "StoichMatrixInteger.h"
 #include "XMLElement.h"
 #include "FluxMLDocument.h"
-
+#include "fluxml_dirs.h"
 
 #include "XMLFramework.h"
 

@@ -1,10 +1,11 @@
-#include "fluxml_config.h" // MACHEPS
 #include "cstringtools.h"
 #include "MVector.h"
 #include "MMatrix.h"
 #include "PMatrix.h"
 #include "SMatrix.h"
 #include "PMatrix.h"
+
+#include <limits>
 
 namespace flux {
 namespace la {
@@ -23,7 +24,7 @@ SMatrix::SMatrix(MMatrix const & copy)
 	
 	for (i=0; i<rows_; i++)
 		for (j=0; j<cols_; j++)
-			if (fabs(copy.get(i,j)) > MACHEPS)
+			if (fabs(copy.get(i,j)) > std::numeric_limits<double>::epsilon())
 				set(i,j,copy.get(i,j));
 }
 
@@ -175,10 +176,10 @@ void SMatrix::measureBandWidth(
 	for (i=0; i<int(rows()); i++)
 	{
 		for (j=i-lb-1; j>=0; j--)
-			if (fabs(get(i,j)) > MACHEPS)
+			if (fabs(get(i,j)) > std::numeric_limits<double>::epsilon())
 				lb = i-j;
 		for (j=i+ub+1; j<int(cols()); j++)
-			if (fabs(get(i,j)) > MACHEPS)
+			if (fabs(get(i,j)) > std::numeric_limits<double>::epsilon())
 				ub = j-i;
 	}
 }

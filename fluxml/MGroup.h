@@ -12,7 +12,6 @@ extern "C"
 #include <sstream>
 #include <set>
 #include <map>
-#include "fluxml_config.h"
 #include "Error.h"
 #include "charptr_array.h"
 #include "charptr_map.h"
@@ -27,6 +26,8 @@ extern "C"
 #include "MVector.h"
 #include "MMatrix.h"
 #include "Conversions.h"
+
+#include <limits>
 
 namespace flux {
 namespace xml {
@@ -384,7 +385,7 @@ protected:
 			d_sum += x_sim.get(i) * x_sim.get(i) / vx;
 		}
 		// alle simulierten Werte 0?
-		if (d_sum <= 10.*MACHEPS)
+		if (d_sum <= 10.*std::numeric_limits<double>::epsilon())
 			return Stype(1.);
 		return n_sum / d_sum;
 	}
@@ -477,7 +478,7 @@ protected:
 		}
 		
 		// alle simulierten Werte 0?
-		if (S4 <= 10.*MACHEPS)
+		if (S4 <= 10.*std::numeric_limits<double>::epsilon())
 		{
 			gs = Stype(1.);
 			return Stype(0.);

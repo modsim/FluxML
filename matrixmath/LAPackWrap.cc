@@ -1,8 +1,16 @@
 #include <complex>
 
-#include "fluxml_config.h"
 #include "Error.h"
 #include "LAPackWrap.h"
+
+#include <limits>
+
+/* Define to a macro mangling the given C identifier (in lower and upper
+   case), which must not contain underscores, for linking with Fortran. */
+#define F77_FUNC(name,NAME) name ## _
+
+/* As F77_FUNC, but for C identifiers containing underscores. */
+#define F77_FUNC_(name,NAME) name ## _
 
 // Fortran-Prototypen
 #define DGESVD_F77	F77_FUNC(dgesvd,DGESVD)
@@ -2161,7 +2169,7 @@ int qr_rank(MMatrix A)
 	int LWORK = -1; // workspace query
 	double * WORK;
 	double ws_query;
-	double tol = MAX2(M,N) * 10 * MACHEPS;
+	double tol = MAX2(M,N) * 10 * std::numeric_limits<double>::epsilon();
 	
 	TAU = new double[MIN2(M,N)];
 	// Workspace query:

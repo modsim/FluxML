@@ -98,7 +98,7 @@ include_directories (${PROJECT_SOURCE_DIR}/data
                      ${PROJECT_SOURCE_DIR}/matrixmath
                      ${PROJECT_SOURCE_DIR}/support
                      ${PROJECT_SOURCE_DIR}/symbolicmath
-                     ${PROJECT_SOURCE_DIR} # this has to be removed
+                     ${CMAKE_CURRENT_BINARY_DIR}
                      ${GMP_INCLUDE_DIRS}
                      ${XercesC_INCLUDE_DIRS}
                     )
@@ -114,5 +114,6 @@ set (DEST_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/libFluxML)
 set (DEST_DOC_DIR ${CMAKE_INSTALL_PREFIX}/share/doc/libFluxML)
 set (DEST_DESKTOP_DIR /usr/share/applications)
 set (DEST_PIXMAP_DIR /usr/share/pixmaps)
+set (FLUX_XML_DIR ${CMAKE_INSTALL_PREFIX}/fluxml/share/fluxml/xml)
 
-
+configure_file(fluxml_dirs.h.in fluxml_dirs.h)

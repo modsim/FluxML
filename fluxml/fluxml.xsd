@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<xs:schema xmlns:xs="https://www.w3.org/2001/XMLSchema" xmlns:mml="https://www.w3.org/1998/Math/MathML" xmlns="https://www.13cflux.net/fluxml" targetNamespace="https://www.13cflux.net/fluxml" elementFormDefault="qualified">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:mml="http://www.w3.org/1998/Math/MathML" xmlns="http://www.13cflux.net/fluxml" targetNamespace="http://www.13cflux.net/fluxml" elementFormDefault="qualified">
   <xs:annotation>
     <xs:documentation xml:lang="en">
       XML Schema definition for FluxML.
@@ -33,7 +33,7 @@
 
     </xs:documentation>
   </xs:annotation>
-  <xs:import namespace="https://www.w3.org/1998/Math/MathML" schemaLocation="https://www.w3.org/Math/XMLSchema/mathml2/mathml2.xsd"/>
+  <xs:import namespace="http://www.w3.org/1998/Math/MathML" schemaLocation="https://www.w3.org/Math/XMLSchema/mathml2/mathml2.xsd"/>
   <!-- root element fluxml -->
   <xs:element name="fluxml">
     <xs:complexType>

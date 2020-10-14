@@ -1,6 +1,5 @@
 #include <cerrno>
 #include <cstring>
-#include "fluxml_config.h"
 #include "Stat.h"
 
 Stat::Stat(char const * fn)

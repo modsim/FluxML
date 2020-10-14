@@ -1,10 +1,8 @@
 #include <cmath>
 
-#include "fluxml_config.h" // MACHEPS
 #include "Error.h"
 #include "Combinations.h"
 #include "Sort.h"
-//#include "DiGraph.h"
 #include "BitArray.h"
 #include "IntegerMath.h"
 #include "SMatrix.h"
@@ -13,6 +11,8 @@
 #include "LAPackWrap.h"
 #include "MMatrixOps.h"
 #include "cstringtools.h"
+
+#include <limits>
 
 // ein double ist etwa auf 15 Dezimal-Stellen genau
 #define DBL_DIGITS	15
@@ -594,7 +594,7 @@ bool gaussJordan(
 	// für MACHEPS*A.normInf(). Das macht aber keinen Sinn, denn die
 	// Fehlerfortpflanzung findet entlang der Zeilen statt (Spalten werden
 	// "parallel" verarbeitet). Also wird hier mit R multipliziert:
-	tolerance = R * MACHEPS * A.normInf();
+	tolerance = R * std::numeric_limits<double>::epsilon() * A.normInf();
 
 	for (k=0; k<R; k++) // ALLE R Zeilen eliminieren (0 .. R-1)
 	{
@@ -778,13 +778,13 @@ bool gaussJordan(
 		// konstanter Teil der Lösung; beim Zugriff auf b muß nicht
 		// permutiert werden, da Zeilenvertauschungen auch auf b
 		// durchgeführt wurden.
-		if (fabs(b(k))>=MACHEPS)
+		if (fabs(b(k))>=std::numeric_limits<double>::epsilon())
 			K(pk,0) = b(k);
 		
 		for (j=rank; j<C; j++)
 		{
 			pj = Psfree(j-rank)+1;
-			if (fabs(A(k,j))>=MACHEPS) K(pk,pj) = - A(k,j);
+			if (fabs(A(k,j))>=std::numeric_limits<double>::epsilon()) K(pk,pj) = - A(k,j);
 		}
 	}
 
@@ -1210,7 +1210,7 @@ int rank(MMatrix A, double * log10_cond, double tol)
 	// definiert als die Anzahl der Singulärwerte, deren Wert größer
 	// als "tol" ist:
 	if (tol == 0.)
-		tol = double( MAX2(M,N) ) * smax * MACHEPS;
+		tol = double( MAX2(M,N) ) * smax * std::numeric_limits<double>::epsilon();
 
 	// Rangbestimmung durch Zählen der Singulärwerte > tol:
 	for (i=0,rank=0; i<s.dim(); i++)

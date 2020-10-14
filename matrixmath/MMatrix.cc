@@ -2,13 +2,13 @@
 #include <cstring>
 #include <cmath>
 
-#include "fluxml_config.h" // MACHEPS
 #include "MMatrix.h"
 #include "PMatrix.h"
 #include "MVector.h"
 #include "MMatrixOps.h"
 #include "LAPackWrap.h"
 #include "cstringtools.h"
+#include <limits>
 
 namespace flux {
 namespace la {
@@ -70,7 +70,7 @@ void MMatrix::spy() const
 		printf("%2X: ", i);
 		for (j=0; j<cols_; j++)
 		{
-			if (fabs(get(i,j))>=MACHEPS)
+			if (fabs(get(i,j))>=std::numeric_limits<double>::epsilon())
 			{
 				if (get(i,j)>0.)
 					putchar('+');
@@ -93,10 +93,10 @@ void MMatrix::measureBandWidth(int & lb, int & ub) const
 	for (i=0; i<int(rows()); i++)
 	{
 		for (j=i-lb-1; j>=0; j--)
-			if (fabs(get(i,j)) > MACHEPS)
+			if (fabs(get(i,j)) > std::numeric_limits<double>::epsilon())
 				lb = i-j;
 		for (j=i+ub+1; j<int(cols()); j++)
-			if (fabs(get(i,j)) > MACHEPS)
+			if (fabs(get(i,j)) > std::numeric_limits<double>::epsilon())
 				ub = j-i;
 	}
 }

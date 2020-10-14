@@ -351,13 +351,14 @@ template< typename T > bool gaussJordan(
 		// konstanter Teil der Lösung; beim Zugriff auf b muß nicht
 		// permutiert werden, da Zeilenvertauschungen auch auf b
 		// durchgeführt wurden.
-		if (abs(b(k))>=MACHEPS)
+		if (abs(b(k))>=std::numeric_limits<double>::epsilon())
 			K(pk,0) = b(k);
 		
 		for (j=rank; j<C; j++)
 		{
 			pj = Psfree(j-rank)+1;
-			if (abs(A(k,j))>=MACHEPS) K(pk,pj) = - A(k,j);
+			if (abs(A(k,j))>=std::numeric_limits<double>::epsilon())
+				K(pk,pj) = - A(k,j);
 		}
 	}
 

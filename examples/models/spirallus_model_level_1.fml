@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><fluxml xmlns="http://www.13cflux.net/fluxml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.13cflux.net/fluxml http://www.13cflux.net/fluxml">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><fluxml xmln="https://www.13cflux.net/fluxml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.13cflux.net/fluxml https://www.13cflux.net/fluxml">
 <info>
     <version>1.1</version>
     <comment>KN: Spirallus-Example With MS measurements</comment>
