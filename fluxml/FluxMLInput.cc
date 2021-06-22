@@ -54,7 +54,7 @@ void FluxMLInput::parseInput(DOMNode * input)
 	DOMAttr * poolAttr, * typeAttr, * cfgAttr, * purityAttr, * costAttr, * idAttr;
         /*** Neue Prfoile-Version **/
         /** List der Bedingungen des Profiles */
-	std::list<symb::ExprTree> profile_conditions_;
+	std::list<double> profile_conditions_;
         DOMAttr *profileAttr;
         profile_defined=false;
         /*** Ende: Neue Prfoile-Version **/
@@ -152,105 +152,67 @@ void FluxMLInput::parseInput(DOMNode * input)
 	{   
             // profile definiert
             profile_defined=true;
-            
-            // Profile-Bedingungen parsen
-            U2A utf_profile(profileAttr->getValue());
-            charptr_array expr_list = charptr_array::split(utf_profile,",");
-            charptr_array::const_iterator i;
-            double last_time = -1;
-            if (expr_list.size() == 0)
-            {
-            	expr_list.add("inf");
-            }
-            std::string last_elem = expr_list[expr_list.size() - 1];
-            boost::algorithm::trim(last_elem);
-            if (last_elem != "INF" and last_elem != "inf")
-            {
-            	expr_list.add("inf");
-            }
-            for (i=expr_list.begin(); i!=expr_list.end(); i++)
-            {
-            	std::stringstream ss;
-            	double next_time;
-            	std::string value(*i);
-            	//remove leading and trailing whitspaces
-            	value = std::regex_replace(value, std::regex("^ +| +$"), "");
-            	if (value == "INF" or value == "inf")
-            	{
-            		//actually not infinity, but otherwise the parser acts up
-            		next_time = std::numeric_limits<double>::max();
-            	}
-            	else
-            	{
-            		ss << value;
-            		ss >> next_time;
-            		if (ss.good()) //stream has to be empty, i.e. not good!
-            		{
-            			fTHROW(XMLException, input, "%s is not a number", value.c_str());
-            		}
-            		if (next_time < 0)
-            		{
-            			fTHROW(XMLException, input, "profile times have to be >= 0, and %g is not", next_time);
-            		}
-            		if (next_time <= last_time)
-            		{
-            			fTHROW(XMLException, input,
-            					"profile times have to be strictly monotonically increasing and %g !> %g", next_time, last_time);
-            		}
-            	}
-            	//this is the first time point we have
-            	if (last_time < 0)
-            	{
-            		if (next_time == 0)
-            		{
-            			//this does not specify anything, go to the next time
-            			last_time = next_time;
-            			continue;
-            		}
-            		else
-            		{
-            			//we have a non zero first time, which means, that 0 is assumed implicityl before
-            			last_time = 0;
-            		}
-            	}
-            	// make expression t < next_time
-            	std::stringstream interval;
-            	interval << "t < " << next_time;
-            	charptr_array nv_pair;
-            	nv_pair.add(interval.str().c_str());
 
-                    ExprTree * expr;
-                    int ci = 0;
-                    try
-                    {
-                            expr = ExprTree::parse(nv_pair[ci]);
-                    }
-                    catch (ExprParserException & e)
-                    {
-                            fTHROW(XMLException,input,"parse error in input profile attribute \"%s\"\noriginal error: %s",
-                                    nv_pair[ci], e.toString().c_str());
-                    }
+        // füge den Startpunkt Null zu Bedinngungsliste hinzu
+        profile_conditions_.push_back(0.);
 
-                    // Überprüfung der Variablennamen
-                    charptr_array vnames = expr->getVarNames();
-                    charptr_array::const_iterator vni;
+        // Profile-Bedingungen parsen
+        U2A utf_profile(profileAttr->getValue());
+        charptr_array expr_list = charptr_array::split(utf_profile,",");
+        charptr_array::const_iterator i;
+        double prv_val= 0., act_val=0.;
 
-                    for (vni = vnames.begin(); vni != vnames.end(); vni++)
-                    {
-                        if((std::strcmp(*vni,"t") != 0) and (std::strcmp(*vni,"otherwise") != 0) )
-                                fTHROW(XMLException,input,
-                                        "invalid variable name \"%s\" in "
-                                        "input profile attribute specification \"%s\" (%s)",
-                                        *vni, (char const*)utf_profile, nv_pair[ci]);
-                    };
+        for (i=expr_list.begin(); i!=expr_list.end(); i++)
+        {
+            char const * w;
+            for (w=*i; *w!='\0'; w++)
+                if (*w > 32) break;
+            if (*w == '\0')
+                continue;
 
-                    profile_conditions_.push_back(*expr);
+            act_val= std::atof(*i);
 
-                    delete expr;
-            }
-            
+            // Überprüfung der INF und Null-Zeitangabe
+            if(act_val==0. or std::isinf(act_val))
+                fTHROW(XMLException,input,
+                       "parse error in input profile attribute (%s): "
+                       "The timestamp \"t=0\" and \"t=inf\" must not be explicitly stated!", *i);
 
+            // Überprüfung von streng monoton aufsteigender kommagetrennter Zeiten
+            if(act_val<= prv_val)
+                fTHROW(XMLException,input,
+                       "parse error in input profile attribute (%s): "
+                       "The timestamps must be specified in a strictly monotonously manner", *i);
+
+            profile_conditions_.push_back(act_val);
+            prv_val= act_val;
         }
+	} else // Prüfe die Input-Substrate ob es sich um eine Substrate-Profile handelt
+    {
+        label = XMLElement::skipJunkNodes(input->getFirstChild());
+        do
+        {
+            if(label!= 0)
+            {
+                DOMNode * child = XMLElement::skipJunkNodes(label->getFirstChild());
+                U2A data(static_cast< DOMText* >(child)->getData());
+                std::string str= (char * )data;
+                if (str.find("t") != std::string::npos)
+                {
+                    profile_defined=true;
+
+                    // füge den Startpunkt Null zu Bedinngungsliste hinzu
+                    profile_conditions_.push_back(0.);
+
+                    break;
+                }
+            }
+
+            // Next label-Element
+            label = XMLElement::nextNode(label);
+        }
+        while (label != 0);
+    }
 	
 	label = XMLElement::skipJunkNodes(input->getFirstChild());
 	do
@@ -484,26 +446,27 @@ void FluxMLInput::parseInput(DOMNode * input)
 				(char const *)utf_cfg);
 		values.insert(utf_cfg,fvalues);
                 purities.insert(utf_cfg,purity);
-		costs.insert(utf_cfg,cost);     
-                if(profile_defined)
-                {
-                    /** Check duplicate **/
-                    if (profiles.exists(utf_cfg))
-			fTHROW(XMLException,label,"duplicate profile specification of fraction %s",
-				(char const *)utf_cfg);
-                    
-                    std::list<symb::ExprTree>::iterator pc;
-                    for(pc=profile_conditions_.begin(); pc!=profile_conditions_.end();++pc)
-                    {
-                        input_profile_->addCondition(&(*pc));
-                    }
-                    // Profile-Test : #Bedingungen und #Werten müssen gleich sein
-                    if(input_profile_->getConditions().size()!=input_profile_->getValues().size())
-                        fTHROW(XMLException,input,"Number of time periods (%zd) and profile specifications(%zd) must be equal",
-                        		input_profile_->getConditions().size(), input_profile_->getValues().size());
-                    
-                    profiles.insert(utf_cfg,*input_profile_);
-                }
+		costs.insert(utf_cfg,cost);
+        if(profile_defined)
+        {
+            /** Check duplicate **/
+            if (profiles.exists(utf_cfg))
+                fTHROW(XMLException,label,"duplicate profile specification of fraction %s in pool %s",
+                       (char const *)utf_cfg, (char const *)utf_pool_name);
+
+            /* add profile conditions to parsed label values*/
+            std::list<double>::iterator pc;
+            for(pc=profile_conditions_.begin(); pc!=profile_conditions_.end();++pc)
+                input_profile_->addCondition(*pc);
+
+            /** Check profile consistency **/
+            fWARNING("#cond= %d  vs. #val= %d", int(input_profile_->getConditions().size()), int(input_profile_->getValues().size()));
+            if(input_profile_->getConditions().size()!=input_profile_->getValues().size())
+                fTHROW(XMLException,label,"The specified profile values of fraction %s and profile conditions are inconsistent with each other!",
+                       (char const *)utf_cfg);
+
+            profiles.insert(utf_cfg,*input_profile_);
+        }
                 // Next Sep-Element
 		label = XMLElement::nextNode(label);
 	}

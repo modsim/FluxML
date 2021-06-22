@@ -29,8 +29,8 @@ class InputProfile
 private:
 	/** Bezeichnung des Profiles */
 	std::string name_;
-	/** List der Bedingungen des Profiles */
-	std::list<symb::ExprTree> conditions_;
+    /** List von Umschaltzeitpunkten des Profiles */
+	std::list<double> conditions_;
         /** List von Werten des Profiles */
 	std::list<symb::ExprTree> values_;
 	/** true, falls Profile gültig */
@@ -92,7 +92,7 @@ public:
 	 *
 	 * @return Profile-Gleichung oder Ungleichung
 	 */
-        inline std::list<symb::ExprTree> const & getConditions() const { return conditions_; }
+        inline std::list<double> const & getConditions() const { return conditions_; }
         
         /**
 	 * Gibt den Wert zurück.
@@ -108,7 +108,7 @@ public:
 	 */
 	inline bool isValid() const { return is_valid_; }
     
-        inline void addCondition(symb::ExprTree * condition) { conditions_.push_back(*condition); }
+        inline void addCondition(double condition) { conditions_.push_back(condition); }
             
         inline void addValue(symb::ExprTree * value) { values_.push_back(*value); }
             
