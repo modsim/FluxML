@@ -161,7 +161,7 @@
       <xs:attribute name="id" type="xs:string" use="required"/>
       <xs:attribute name="atoms" use="optional" default="0" type="AtomType"/>
       <xs:attribute name="size" use="optional" default="1" type="xs:double"/>
-      <xs:attribute name="cfg" use="optional" default="0" type="AtomCfgType"/>
+      <xs:attribute name="cfg" use="optional" default="" type="AtomCfgType"/>
     </xs:complexType>
   </xs:element>
   <xs:simpleType name="AtomType">
@@ -183,12 +183,12 @@
   </xs:simpleType>
   <xs:simpleType name="CfgType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="([A-Za-z]+|(\s*[CHNOS]#[0-9]+@[A-Za-z0-9]+(\s+[CHNOS]#[0-9]+@[A-Za-z0-9]+)*\s*))"/>
+      <xs:pattern value="([A-Za-z]*|(\s*[CHNOS]#[1-9][0-9]*@[A-Za-z0-9]+)*\s*)"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="AtomCfgType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="([A-Za-z]+|(\s*[CHNOS]#[0-9]+(\s+[CHNOS]#[0-9]+)*\s*))"/>
+      <xs:pattern value="([A-Za-z]*|(\s*CHNOS\s*|(\s*[CHNOS][1-9][0-9]*)*\s*))"/>
     </xs:restriction>
   </xs:simpleType>
   <!-- fluxml/reactionnetwork/reaction -->
