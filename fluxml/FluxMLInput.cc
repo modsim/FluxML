@@ -99,11 +99,19 @@ void FluxMLInput::parseInput(DOMNode * input)
 
 	for (eqConstraints_it=eqConstraints.begin(); eqConstraints_it!=eqConstraints.end(); eqConstraints_it++)
 	{
-		charptr_array constraintsVars = eqConstraints_it->getConstraint()->getVarNames();
-		if(constraintsVars.find((char const*)utf_pool_name)!=constraintsVars.end())
-			fTHROW(XMLException,input,
-				"input pool \"%s\" specified in equality constraint",
-				(char const*)utf_pool_name);
+		if (eqConstraints_it->getParameterType() == data::POOL)
+		{
+			charptr_array constraintsVars = eqConstraints_it->getConstraint()->getVarNames();
+			if(constraintsVars.find((char const*)utf_pool_name)!=constraintsVars.end())
+			{
+				fTHROW(XMLException,input,
+						"input pool \"%s\" specified in equality constraint:\n%s",
+					(char const*)utf_pool_name,
+					eqConstraints_it->getConstraint()->toString().data());
+
+			}
+
+		}
 	}
 	
 	
@@ -112,11 +120,17 @@ void FluxMLInput::parseInput(DOMNode * input)
 	
 	for (ineqConstraints_it=ineqConstraints.begin(); ineqConstraints_it!=ineqConstraints.end(); ineqConstraints_it++)
 	{
-		charptr_array constraintsVars = ineqConstraints_it->getConstraint()->getVarNames();
-		if(constraintsVars.find((char const*)utf_pool_name)!=constraintsVars.end()) 
-			fTHROW(XMLException,input,
-				"input pool \"%s\" specified in inequality constraint",
-				(char const*)utf_pool_name);
+		if (ineqConstraints_it->getParameterType() == data::POOL)
+		{
+			charptr_array constraintsVars = ineqConstraints_it->getConstraint()->getVarNames();
+			if(constraintsVars.find((char const*)utf_pool_name)!=constraintsVars.end())
+			{
+				fTHROW(XMLException,input,
+						"input pool \"%s\" specified in inequality constraint:\n%s",
+				(char const*)utf_pool_name,
+				ineqConstraints_it->getConstraint()->toString().data());
+			}
+		}
 	}
 	// Anzahl der Atome / Init. der Maske
 	natoms = ipool->getNumAtoms();
