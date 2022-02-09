@@ -1,5 +1,7 @@
 <p align="center"> <img src="images/fluxml_logo.png"></p>
 
+[![Build Status](https://travis-ci.com/modsim/FluxML.svg?branch=master)](https://travis-ci.com/modsim/FluxML)
+
 ## Introduction
 <p align="justify">FluxML is a universal modeling language for metabolic flux analysis designed with the aim of providing a standard document format for creating, validating and reliable exchanging of arbitrary metabolic models across different simulation tools. It's hierarchically structured based on widely used XML (eX-tensible Markup Language) and specified all essential information required to enable performing both isotopically stationary and non-stationary 13C metabolic Fux analysis including the structure of the metabolic network, atom transitions, experimental data, model constraints and parameters. <br/>
 FluxML is organized in three major releases, termed Levels. Level 1 is dedicated to isotopically stationary 13C MFA while Level 2 covers isotopically non-stationary 13C MFA in addition. With Level 3 the general case of multiple, isotopically stationary and non-stationary isotopic tracer experiments are supported. For all released FluxML Levels, a formal syntax description defined in a W3C XML Schema Document (https://13cflux.net/fluxml), an associated [UML diagram](images/fluxml_diagram.png) and an open-source  C/C++ library, named <i>libFluxML</i>, for parsing, serializing and manipulating FluxML documents which supports all releases of FluxML up through Level 3 are provided. In the following sections the FluxML elements are briefly addressed.</p>

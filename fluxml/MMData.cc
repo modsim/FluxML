@@ -411,7 +411,7 @@ void MMData::parse(DOMNode * data)
 						"attribute \"weight\": invalid weight #2 [%i]",
 						weight2);
 			}
-                        else // MI-MS type
+                        else if (MGtype == MGroup::mg_MIMS)// MI-MS type
                         {
                             // Prüfe, ob die Gewichte schon registriert sind
                             MGroupMIMS & MGmims = static_cast< MGroupMIMS & >(*MG);
@@ -516,6 +516,9 @@ void MMData::parse(DOMNode * data)
 				parray = static_cast< MGroup13CNMR* >(MG)->getPositions();
 				MGroup13CNMR::Type const * tarray
 					= static_cast< MGroup13CNMR* >(MG)->getNMRTypes();
+				if (*parray == -1)
+					fTHROW(XMLException,child,
+						"attributes \"pos\", \"type\": invalid NMR type for position");
 				while (*parray != -1)
 				{
 					if (*parray == pos && *tarray == type)
@@ -525,7 +528,10 @@ void MMData::parse(DOMNode * data)
 				}
 				if (*parray == -1)
 					fTHROW(XMLException,child,
-						"attributes \"pos\", \"type\": invalid NMR type for position");
+						"position %d with type %s not specified for NMR measurement %s"
+							, pos, MGroup13CNMR::typeToString(MGroup13CNMR::Type(type)).c_str(),
+							MG->getGroupId());
+
 			}
 		}
 

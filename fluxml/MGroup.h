@@ -2017,6 +2017,30 @@ public:
 	/** 13C-NMR Typen */
 	typedef MValue13CNMR::NMR13CType Type;
 
+	static std::string typeToString(const Type& type)
+	{
+		std::string ret;
+		switch (type)
+		{
+		case Type::S:
+			ret = "S";
+			break;
+		case Type::DL:
+			ret = "DL";
+			break;
+		case Type::DR:
+			ret = "DR";
+			break;
+		case Type::DD:
+			ret = "DD";
+			break;
+		case Type::T:
+			ret = "T";
+			break;
+		}
+		return ret;
+	}
+
 protected:
 	/** 13C-NMR Atompositionsliste */
 	int * poslst_;
@@ -2478,6 +2502,18 @@ public:
 	 * @return neuer Prüfsummen-Wert
 	 */
 	uint32_t computeCheckSum(uint32_t crc, int crc_scope) const;
+  
+  /**
+   * Returns the mask of 1s
+   * note that the set of 1s is disjoint from the set of Xs,
+   * but their union is not necessary the whole molecule 
+   */
+  const BitArray& getMask() const { return mask_;};
+  
+  /**
+   *  Returns the mask of Xs
+   */
+  const BitArray& getXMask() const { return xmask_;};
 
 }; // class MGroupCumomer
 
@@ -3072,6 +3108,8 @@ protected:
 			}
 			return Stype(0.);
 			}
+		case symb::et_op_sin:
+		case symb::et_op_cos:
 		case symb::et_op_pow:
 //			return ::pow(L,R);
 		case symb::et_op_sqrt:
@@ -3211,6 +3249,8 @@ protected:
 			}
 			return Stype(0.);
 			}
+		case symb::et_op_sin:
+		case symb::et_op_cos:
 		case symb::et_op_pow:
 //			return ::pow(L,R);
 		case symb::et_op_sqrt:

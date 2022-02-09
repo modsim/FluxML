@@ -11,6 +11,7 @@
 #include "cstringtools.h"
 #include "InputProfile.h"
 #include "ExprTree.h"
+#include <limits>
 
 using namespace flux::symb;
 
@@ -20,94 +21,55 @@ namespace data {
     
 double InputProfile::eval(double t, bool* status)
 {
-        double val=0.;
-        symb::ExprTree * ts = symb::ExprTree::val(t);
-        std::list<symb::ExprTree>::const_iterator ic, iv;
-        bool otherwise= false;        
-        for(ic=conditions_.begin(),iv=values_.begin(); ic!=conditions_.end() || iv!=values_.end();++ic, ++iv)
-        {
-            ExprTree * c_tmp = ic->clone();
-            ExprTree * v_tmp = iv->clone();
-            if(ic->isLeaf())
-            {
-                v_tmp->subst("t", ts);
-                v_tmp->eval(true);
-                val = v_tmp->getDoubleValue();
-                otherwise= true;
-            }
-            else
-            {
-                bool fulfilled= true;
-                if((c_tmp->Lval()->isLeaf() or c_tmp->Lval()->isUnaryOp()) 
-                    and (c_tmp->Rval()->isLeaf() or c_tmp->Rval()->isUnaryOp()))
-                {
-                    c_tmp->subst("t", ts);
-                    c_tmp->eval(true);
-                    if(c_tmp->getDoubleValue()<1)
-                        fulfilled = false;
-                }
-                else
-                {
-                    ExprTree * l_c_tmp, * r_c_tmp;
-                    l_c_tmp= c_tmp->Lval();
-                    r_c_tmp= c_tmp->Rval();
-                    if(l_c_tmp->isLeaf() or l_c_tmp->isUnaryOp())
-                    {
-                        r_c_tmp->subst("t", ts);
-                        r_c_tmp->eval(true);
-                        
-                        if(r_c_tmp->getDoubleValue()<1)
-                            fulfilled = false;
-                        else
-                        {
-                            c_tmp->Rval(ExprTree::sym("t"));
-                            c_tmp->subst("t", ts);
-                            c_tmp->eval(true);
-                            if(c_tmp->getDoubleValue()<1)
-                                fulfilled= false;
-                        }
-                    }   
-                    else if(r_c_tmp->isLeaf() or r_c_tmp->isUnaryOp())
-                    {
-                        l_c_tmp->subst("t", ts);
-                        l_c_tmp->eval(true);
-                        
-                        if(l_c_tmp->getDoubleValue()<1)
-                            fulfilled= false;
-                        else
-                        {
-                            // Ersetze den linken Ausdruck durch variable t
-                            c_tmp->Lval(ExprTree::sym("t"));
-                            c_tmp->subst("t", ts);
-                            c_tmp->eval(true);
-                            if(c_tmp->getDoubleValue()<1)
-                                fulfilled= false;
-                        }
-                    }
-                    else
-                    {
-                        fERROR("Unsupported profile specification (%s)", ic->toString().c_str());
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                if(fulfilled)
-                {
-                    v_tmp->subst("t", ts);
-                    v_tmp->eval(true);
-                    val = v_tmp->getDoubleValue();   
-                    *status = true;
-                    delete c_tmp;
-                    delete v_tmp;
-                    delete ts;
-                    return val;
-                }
-            }
-            delete c_tmp;
-            delete v_tmp;
-        }
+    std::list<double>::iterator ic;
+    std::list<symb::ExprTree>::const_iterator iv= values_.begin();
+    symb::ExprTree * ts = symb::ExprTree::val(t);
+    double val=0.;
+    /** Ausnahmefall: profile nicht explizit definiert (d.h Bedingungsliste
+     *  enthält nur 0)
+     **/
+    if(conditions_.size()==1)
+    {
+        ExprTree * v_tmp = iv->clone();
+        v_tmp->subst("t", ts);
+        v_tmp->eval(true);
+        val = v_tmp->getDoubleValue();
+        *status= true;
+//            fWARNING("eval: t=%.6f \t--> val: %.3f", t, val);
         delete ts;
-        *status = otherwise;
+        delete v_tmp;
         return val;
+    }
+
+    double act_val=0., next_val=0.;
+    bool fulfilled= false;
+
+    for(ic = conditions_.begin();iv!=values_.end();++iv)
+    {
+        ExprTree * v_tmp = iv->clone();
+        act_val = *ic;
+        ++ic;
+        if(ic!=conditions_.end())
+            next_val = *ic;
+        else
+            next_val = std::numeric_limits<double>::infinity(); // INF
+
+        if(t >= act_val and t < next_val)
+        {
+            v_tmp->subst("t", ts);
+            v_tmp->eval(true);
+            val = v_tmp->getDoubleValue();
+            fulfilled= true;
+//                fWARNING("eval: %.2f <= t=%.6f < %.2f \t--> val: %.3f", act_val,t,next_val, val);
+            delete v_tmp;
+            break;
+        }
+        delete v_tmp;
+    }
+
+    *status= fulfilled;
+    delete ts;
+    return val;
 }
 
 
