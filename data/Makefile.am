@@ -1,7 +1,7 @@
 Notation.cc : Notation.inc Notation2.inc Notation3.inc
 
 .re.inc :
-	$(RE2C) -W -o $@ $<
+	$(RE2C) -o $@ $<
 
 EXTRA_DIST = Notation.re Notation2.re Notation3.re
 

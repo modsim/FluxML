@@ -19,7 +19,7 @@ all-local:
 	$(PYTHON) setup.py build
 
 install-exec-local:
-	$(PYTHON) setup.py install --prefix=$$DESTDIR$(prefix) --install-layout=deb
+	$(PYTHON) setup.py install --prefix=$$DESTDIR$(prefix) 
 
 clean-local:
 	rm -rf build
