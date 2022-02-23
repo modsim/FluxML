@@ -66,9 +66,30 @@
                     child = XMLElement::nextNode(child);
             }
 
+
             // es dürfen keine Elemente mehr folgen!
             if (child != 0)
-                    fTHROW(XMLException,child,"unexpected extra content in element \"model\"");
+            {
+            	// either wrong order of elements, or unknown element
+            	if (XMLElement::match(child,mm_labelingmeasurement,mm_xmlns_uri) ||
+            			XMLElement::match(child,mm_fluxmeasurement,mm_xmlns_uri) ||
+						XMLElement::match(child,mm_fluxratios,mm_xmlns_uri) ||
+						XMLElement::match(child,mm_poolsizeratios,mm_xmlns_uri) ||
+						XMLElement::match(child,mm_poolmeasurement,mm_xmlns_uri) ||
+						XMLElement::match(child,mm_poolsizemeasurement,mm_xmlns_uri))
+            	{
+            		fTHROW(XMLException, child, "wrong oder of elements inside "
+            				"\"model\". Correct order is \"labelingmeasurement\""
+            				", \"fluxmeasurement\", \"fluxratios\", "
+            				"\"poolsizeratios\", \"poolsizemeasurement\"");
+            	}
+            	else
+            	{
+                    fTHROW(XMLException, child, "unexpected extra content "
+                    		"\"%s\" in element \"model\"",
+							XMLElement::nodeToString(child));
+            	}
+            }
     }
 
     void MMModel::parseLabelingMeasurement(DOMNode * labelingmeasurement)
