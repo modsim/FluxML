@@ -174,10 +174,6 @@ bool Configuration::addFreePoolSize(
         pcfg.edweight = has_edweight?edweight:1.;
 	sim_opt_free_poolsizes_[pname] = pcfg;
         
-        // Setzt die untere Grenze der Poolgrößen
-        symb::ExprTree * ieq = symb::ExprTree::geq(symb::ExprTree::sym(pname),symb::ExprTree::val(1.e-5));
-        createConstraint("anonymous" ,ieq, data::POOL);
-        delete ieq;
 	return true;
 }
 
