@@ -112,6 +112,13 @@ private:
 	} value_;
 
 public:
+    inline ExprTree()
+    : node_type_(et_variable), mark_(0), hval_(0)
+    {
+        value_.var_name_ = strdup_alloc("");
+        hashValue();
+    }
+
 	/**
 	 * Constructor für einen Operatorknoten
 	 *
