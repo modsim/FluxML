@@ -227,7 +227,7 @@ public:
 	T operator*(GVector< T > const & rval) const
 	{
 		size_t i;
-		T p(); // setzt einen funktionierenden def-Constructor voraus
+		T p; // setzt einen funktionierenden def-Constructor voraus
 		fASSERT(rval.dim_ == dim_);
 		for (i=0; i<dim_; i++)
 			p = p + get(i)*rval.get(i);
