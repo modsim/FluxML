@@ -206,7 +206,10 @@ void FluxMLReaction::parseReaction(
 			C = ExprTree::eq(ExprTree::sym(*ili),C);
 			// das hier wird fälschlicherweise als nicht-linear erkannt:
                         doc_->createConstraint("scrambler",C,data::NET); // net
-			doc_->createConstraint("scrambler",C,data::XCH); // xch
+                        if (bidirectional_)
+                        {
+                            doc_->createConstraint("scrambler",C,data::XCH); // xch
+                        }
 			delete C; C = 0;
 			++nconst;
 		}
