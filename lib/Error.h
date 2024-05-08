@@ -447,12 +447,12 @@ public:
 	 * @param ap additional values for the log message
 	 */
 	bool publish(
-		LogLevel level,
-		char const * file,
-		char const * func,
-		size_t line,
-		char const * msg,
-		va_list ap
+		[[maybe_unused]] LogLevel level,
+		[[maybe_unused]] char const * file,
+		[[maybe_unused]] char const * func,
+		[[maybe_unused]] size_t line,
+		[[maybe_unused]] char const * msg,
+		[[maybe_unused]] va_list ap
 		) { return false; }
 
 };
