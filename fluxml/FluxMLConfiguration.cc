@@ -220,7 +220,7 @@ void FluxMLConfiguration::parseSimulation(
 	DOMNode * simulation
 	)
 {
-	DOMAttr * typeAttr, * methodAttr;
+	DOMAttr * typeAttr;
 	DOMNode * child;
 	DOMNamedNodeMap * nnm;
 	char const * cfg_name = cfg->getName();
@@ -244,7 +244,6 @@ void FluxMLConfiguration::parseSimulation(
 			"cfg \"%s\": illegal value for simulation attribute \"type\"",
 			cfg_name);
 	
-	methodAttr = (DOMAttr*)(nnm->getNamedItem(fml_method));
         
 //	if (methodAttr == 0 or XMLString::equals(methodAttr->getValue(),fml_auto))
 //	{

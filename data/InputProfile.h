@@ -53,24 +53,6 @@ public:
 	{
 		name_ = name;
 	}
-
-	/**
-	 * Copy-Constructor
-	 *
-	 * @param copy zu kopierendes Profile-Objekt
-	 */
-	inline InputProfile(InputProfile const & copy)
-		: conditions_(copy.conditions_),
-		  values_(copy.values_),
-		  is_valid_(copy.is_valid_)
-	{
-		name_ = copy.name_;
-	}
-
-	/**
-	 * Destructor
-	 */
-	inline virtual ~InputProfile() { }
         
 public:
 	/**
