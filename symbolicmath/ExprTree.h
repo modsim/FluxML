@@ -651,6 +651,12 @@ public:
 		);
 
 	/**
+	 *  recursively evaluate all unary minuses, where Lval is a literal
+	 *
+	 **/
+	void evalUnaryMinus();
+
+	/**
 	 * Ausdrucksvereinfachung
 	 */
 	void simplify()

@@ -3401,6 +3401,7 @@ protected:
 		  expr_(expr->clone()),
 		  is_net_(is_net)
 	{
+		expr_->evalUnaryMinus();
 		fluxes_ = expr_->getVarNames();
 	}
 
