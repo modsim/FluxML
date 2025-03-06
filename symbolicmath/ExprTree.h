@@ -145,6 +145,60 @@ public:
 	 */
 	ExprTree(ExprTree const & copy);
 
+
+
+	constexpr ExprTree& operator=(const flux::symb::ExprTree& rhs)
+	{
+		if (this != &rhs)
+		{
+			//destroy old objects
+			if (hval_ != 0)
+				delete hval_;
+
+			if (isOperator())
+			{
+				if (value_.childs_.Lval_ != 0)
+					delete value_.childs_.Lval_;
+				if (value_.childs_.Rval_ != 0)
+					delete value_.childs_.Rval_;
+			}
+			else if (isVariable())
+				delete[] value_.var_name_;
+			// copy new ones
+			node_type_ = rhs.node_type_;
+			switch (node_type_)
+			{
+			case et_variable:
+				value_.var_name_ = strdup_alloc(rhs.value_.var_name_);
+				break;
+			case et_literal:
+				value_.lit_value_ = rhs.value_.lit_value_;
+				break;
+			default:
+				fASSERT( isOperator() );
+				if (rhs.value_.childs_.Lval_ != 0)
+					value_.childs_.Lval_ =
+						new ExprTree(*(rhs.value_.childs_.Lval_));
+				else
+					value_.childs_.Lval_ = 0;
+				if (rhs.value_.childs_.Rval_ != 0)
+					value_.childs_.Rval_ =
+						new ExprTree(*(rhs.value_.childs_.Rval_));
+				else
+					value_.childs_.Rval_ = 0;
+			}
+			if (rhs.hval_ != 0)
+			{
+				hval_ = new size_t;
+				*hval_ = *(rhs.hval_);
+			}
+			else
+				hval_ = 0;
+			mark_ = rhs.mark_;
+		}
+		return *this;
+	}
+
 	/**
 	 * Constructor für einen Variablenknoten (Blattknoten).
 	 *
@@ -595,6 +649,12 @@ public:
 		bool force = false,
 		charptr_map< charptr_array > * dsymmap = 0
 		);
+
+	/**
+	 *  recursively evaluate all unary minuses, where Lval is a literal
+	 *
+	 **/
+	void evalUnaryMinus();
 
 	/**
 	 * Ausdrucksvereinfachung

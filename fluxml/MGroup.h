@@ -654,7 +654,7 @@ public:
 	 * @param idx Index des Messwerts
 	 * @return Messwertspezifikation
 	 */
-	inline char const * getSpec(size_t idx) const { return MGroup::getSpec(); }
+	inline char const * getSpec([[maybe_unused]] size_t idx) const { return MGroup::getSpec(); }
 	
 	/**
 	 * Berechnet eine Prüfsumme über die Spezifikation des MGroup-Objekts.
@@ -2491,7 +2491,7 @@ public:
 	 * @param idx Index des Messwerts
 	 * @return Messwertspezifikation
 	 */
-	inline char const * getSpec(size_t idx) const { return MGroup::getSpec(); }
+	inline char const * getSpec([[maybe_unused]] size_t idx) const { return MGroup::getSpec(); }
 
 	/**
 	 * Berechnet eine Prüfsumme über die Spezifikation des MGroup-Objekts.
@@ -3401,6 +3401,7 @@ protected:
 		  expr_(expr->clone()),
 		  is_net_(is_net)
 	{
+		expr_->evalUnaryMinus();
 		fluxes_ = expr_->getVarNames();
 	}
 

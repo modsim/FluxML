@@ -15,6 +15,8 @@ AC_PROG_CC([xlc_r gcc cc])
 dnl C++ Code
 AC_LANG(C++)
 
+AX_CXX_COMPILE_STDCXX(17, , mandatory)
+
 dnl configuriert diverse Compiler-Flags
 AC_CXX_FLAGS_PRESET
 

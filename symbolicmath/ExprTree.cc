@@ -1559,10 +1559,7 @@ ExprTree * ExprTree::evalNode(
 						Rval()->value_.lit_value_);
 			break;
 		case et_op_uminus:
-			if (force)
-				value_.lit_value_ = -Lval()->value_.lit_value_;
-			else
-				keep = true;
+			value_.lit_value_ = -Lval()->value_.lit_value_;
 			break;
 		case et_op_mul:
 			fASSERT( Rval() );
@@ -2094,6 +2091,23 @@ void ExprTree::eval(
 			}
 		} // if (not Lval()->isVariable())
 	} // if (node_type_ == et_op_diff)
+}
+
+
+void ExprTree::evalUnaryMinus()
+{
+	if (isLeaf()) return;
+
+	// zuerst nach links, dann nach rechts absteigen ...
+	Lval()->evalUnaryMinus();
+	if (Rval()) Rval()->evalUnaryMinus();
+
+	if (IS_OP_UMINUS(this))
+	{
+		evalNode(false, 0, true);
+	}
+
+
 }
 
 void ExprTree::smoothen(

@@ -1456,7 +1456,7 @@ MGroup13CNMR * MGroup13CNMR::parseSpec(char const * s, int * state)
 	if (st != 0)
 		return 0;
 
-	for (i=0; itypelst[i]!=-1; i++);
+	for (i=0; itypelst[i]!=-1; i++)
 	{}
 
 	typelst = new Type[i];
