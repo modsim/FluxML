@@ -214,23 +214,35 @@ void FluxMLReaction::parseReaction(
 			++nconst;
 		}
 
-		// Nächste Kombination der Varianten erzeugen:
-		for (li=in_.begin(); li!=in_.end(); ++li)
+		// Nächste Kombination der Varianten erzeugen (Zählwerk über in_ und out_):
+		bool carry = true;
+		for (li=in_.begin(); carry and li!=in_.end(); ++li)
 		{
 			if (li->index < int(li->variants.size()))
 			{
-				++(li->iter); ++(li->index); continue;
+				++(li->iter); ++(li->index);
+				carry = false;              // fertig, kein Übertrag
 			}
+			else
+			{
+				li->iter = li->variants.begin();
+				li->index = 1;              // Übertrag auf die nächste Stelle
+			}   
 		}
-		for (li=out_.begin(); li!=out_.end(); ++li)
+		for (li=out_.begin(); carry and li!=out_.end(); ++li)
 		{
 			if (li->index < int(li->variants.size()))
 			{
-				++(li->iter); ++(li->index); continue;
-			}
+				++(li->iter); ++(li->index);
+				carry = false;
+			}   
+			else
+			{
+				li->iter = li->variants.begin();
+				li->index = 1;
+			}   
 		}
-	}
-
+	} 
 	// Constraints für unidirektionale Flüsse anlegen
 	if (not bidirectional_)
 	{
