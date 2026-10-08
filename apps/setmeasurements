@@ -90,10 +90,10 @@ def emitLabelingMeasurement(opt_fwdsimfile, filter, cumomer_sim, errorRel, error
 	fwdsim_tree = ET.parse(open(opt_fwdsimfile, 'r'))
 	root = fwdsim_tree.getroot()
 
-	poollist = root.getiterator('{%s}pool' % fwdsim_ns)
+	poollist = root.iter('{%s}pool' % fwdsim_ns)
 	for pool in poollist:
 		name = pool.get('id')
-		valuelist = pool.getiterator('{%s}value' % fwdsim_ns)
+		valuelist = pool.iter('{%s}value' % fwdsim_ns)
 		cfg_val_pairs = []
 
 		fquery = None
@@ -151,7 +151,7 @@ def emitFluxMeasurement(opt_fwdsimfile, filter, errorRel, errorAbs):
 	def netxch2fwdbwd(net,xch):
 		return (str(float(xch)+max(float(net),0.)),str(float(xch)+max(-float(net),0.)))
 
-	fluxlist = root.getiterator('{%s}flux' % fwdsim_ns)
+	fluxlist = root.iter('{%s}flux' % fwdsim_ns)
 
 	for flux in fluxlist:
 		fname = flux.get('id')

@@ -2,6 +2,7 @@
 # coding: utf-8
 import sys
 import getopt
+import gzip
 import re
 import os
 from subprocess import *
@@ -51,10 +52,10 @@ def convert(sbml,doc,fluxml):
 	species_id_map = {}
 
 	# Für Python 2.4 siehe cg2gml.py ...
-	model = next(sbml.getiterator('{%s}model' % sbml_ns))
+	model = next(sbml.iter('{%s}model' % sbml_ns))
 
 	try:
-		listOfSpecies = next(model.getiterator('{%s}listOfSpecies'
+		listOfSpecies = next(model.iter('{%s}listOfSpecies'
 				% sbml_ns))
 	except StopIteration:
 		flux.error('SBML model does not contain a reaction network')
@@ -66,7 +67,7 @@ def convert(sbml,doc,fluxml):
 	fluxml.appendChild(reactionnetwork)
 
 	# altes SBML
-	los = listOfSpecies.getiterator('{%s}specie' % sbml_ns)
+	los = listOfSpecies.iter('{%s}specie' % sbml_ns)
 	for specie in los:
 		pool = doc.createElement('pool')
 		pool.setAttribute('id',specie.get('name'))
@@ -78,7 +79,7 @@ def convert(sbml,doc,fluxml):
 		input_pools[specie.get('name')] = True
 
 	# modernes SBML
-	los = listOfSpecies.getiterator('{%s}species' % sbml_ns)
+	los = listOfSpecies.iter('{%s}species' % sbml_ns)
 	for species in los:
 		pool = doc.createElement('pool')
 		pool.setAttribute('id',species.get('id'))
@@ -95,9 +96,9 @@ def convert(sbml,doc,fluxml):
 		# zunächst ...
 		input_pools[species.get('id')] = True
 
-	listOfReactions = next(model.getiterator('{%s}listOfReactions'
+	listOfReactions = next(model.iter('{%s}listOfReactions'
 			% sbml_ns))
-	lor = listOfReactions.getiterator('{%s}reaction' % sbml_ns)
+	lor = listOfReactions.iter('{%s}reaction' % sbml_ns)
 	for react in lor:
 		reaction = doc.createElement('reaction')
 		reactionnetwork.appendChild(reaction)
@@ -112,28 +113,28 @@ def convert(sbml,doc,fluxml):
 			reaction.setAttribute('bidirectional','false')
 
 		try:
-			loe = next(react.getiterator('{%s}listOfReactants' %
+			loe = next(react.iter('{%s}listOfReactants' %
 					sbml_ns))
 		except StopIteration:
 			flux.error("reactions without educts found -- probably not a reaction network")
 			sys.exit(1)
 
 		# altes SBML
-		losref = loe.getiterator('{%s}specieReference' % sbml_ns)
+		losref = loe.iter('{%s}specieReference' % sbml_ns)
 		for sref in losref:
 			reduct = doc.createElement('reduct')
 			reduct.setAttribute('id', sref.get('specie'))
 			reaction.appendChild(reduct)
 
 		# modernes SBML
-		losref = loe.getiterator('{%s}speciesReference' % sbml_ns)
+		losref = loe.iter('{%s}speciesReference' % sbml_ns)
 		for sref in losref:
 			reduct = doc.createElement('reduct')
 			reduct.setAttribute('id', sref.get('species'))
 			reaction.appendChild(reduct)
 
 		try:
-			lop = next(react.getiterator('{%s}listOfProducts' %
+			lop = next(react.iter('{%s}listOfProducts' %
 					sbml_ns))
 		except StopIteration:
 			# Reaktionen ohne Produkte sind erlaubt (Abflüsse)
@@ -141,7 +142,7 @@ def convert(sbml,doc,fluxml):
 			continue
 
 		# altes SBML
-		losref = lop.getiterator('{%s}specieReference' % sbml_ns)
+		losref = lop.iter('{%s}specieReference' % sbml_ns)
 		for sref in losref:
 			rproduct = doc.createElement('rproduct')
 			rproduct.setAttribute('id', sref.get('specie'))
@@ -151,7 +152,7 @@ def convert(sbml,doc,fluxml):
 				del input_pools[sref.get('specie')]
 
 		# modernes SBML
-		losref = lop.getiterator('{%s}speciesReference' % sbml_ns)
+		losref = lop.iter('{%s}speciesReference' % sbml_ns)
 		for sref in losref:
 			rproduct = doc.createElement('rproduct')
 			rproduct.setAttribute('id', sref.get('species'))
@@ -248,7 +249,7 @@ def main():
 		sys.exit(1)
 
 	infile = sys.stdin
-	outfile = sys.stdout
+	outfile = sys.stdout.buffer
 	if opt_infile:
 		infile = open(opt_infile,'r')
 
@@ -256,9 +257,9 @@ def main():
 	sbml = sbml_tree.getroot()
 
 	assert sbml.tag.endswith('sbml')
-        if sbml.tag.startswith('{'):
-                sbml_ns = sbml.tag[1:sbml.tag.rindex('}')]
-        assert sbml.tag == '{%s}sbml' % sbml_ns
+	if sbml.tag.startswith('{'):
+		sbml_ns = sbml.tag[1:sbml.tag.rindex('}')]
+	assert sbml.tag == '{%s}sbml' % sbml_ns
 
 	# fluxml anlegen
 	# XML/FluxML-Dokument initialisieren
@@ -289,11 +290,11 @@ def main():
 
 	if opt_outfile:
 		if fCompressGZIP:
-			if not args[1].endswith('.gz'):
+			if not opt_outfile.endswith('.gz'):
 				flux.warning('(compressed) output file does not end with ".gz"')
 			outfile = gzip.open(opt_outfile,'w')
 		else:
-			outfile = open(opt_outfile,'w')
+			outfile = open(opt_outfile,'wb')
 
 	if fPretty:
 		#xml.dom.ext.PrettyPrint(fmldoc,outfile,"UTF-8")

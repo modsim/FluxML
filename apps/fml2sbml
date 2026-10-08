@@ -90,7 +90,7 @@ def convert(fml,config,sbmldoc):
 		los.appendChild(species)
 
 	ri = 1
-	for react in reactionnetwork.getiterator('{%s}reaction' % fml_ns):
+	for react in reactionnetwork.iter('{%s}reaction' % fml_ns):
 		# eine dummy-Kinetik
 		kineticLaw = sbmldoc.createElement('kineticLaw')
 		math = sbmldoc.createElement('math')
@@ -122,7 +122,7 @@ def convert(fml,config,sbmldoc):
 			reaction.setAttribute('name', annotation.text)
 
 		loRea = sbmldoc.createElement('listOfReactants')
-		for reduct in react.getiterator('{%s}reduct' % fml_ns):
+		for reduct in react.iter('{%s}reduct' % fml_ns):
 			sr = sbmldoc.createElement('speciesReference')
 			sr.setAttribute('species', reduct.get('id'))
 			loRea.appendChild(sr)
@@ -132,7 +132,7 @@ def convert(fml,config,sbmldoc):
 		reaction.appendChild(loRea)
 		loPro = sbmldoc.createElement('listOfProducts')
 		nPro = 0
-		for rproduct in react.getiterator('{%s}rproduct' % fml_ns):
+		for rproduct in react.iter('{%s}rproduct' % fml_ns):
 			sr = sbmldoc.createElement('speciesReference')
 			sr.setAttribute('species', rproduct.get('id'))
 			loPro.appendChild(sr)
@@ -159,7 +159,7 @@ def main():
 		sys.exit(1)
 
 	fml_file = sys.stdin
-	sbml_file = sys.stdout
+	sbml_file = sys.stdout.buffer
 	config = 'default'
 
 	if len(args) > 0:
@@ -178,7 +178,7 @@ def main():
 			usage()
 			sys.exit(1)
 
-	if fml_file != sys.stdin and sbml_file != sys.stdout and fml_file == sbml_file:
+	if fml_file != sys.stdin and sbml_file != sys.stdout.buffer and fml_file == sbml_file:
 		flux.error('refusing to overwrite input file ("%s" for -i, -o)'
 			% fml_file)
 		sys.exit(1)
@@ -186,8 +186,8 @@ def main():
 	if fml_file != sys.stdin:
 		fml_file = open(fml_file,'r')
 	
-	if sbml_file != sys.stdout:
-		sbml_file = open(sbml_file,'w')
+	if sbml_file != sys.stdout.buffer:
+		sbml_file = open(sbml_file,'wb')
 
 	fml_tree = ET.parse(fml_file)
 	fml = fml_tree.getroot()
