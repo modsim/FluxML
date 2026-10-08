@@ -97,7 +97,7 @@ def parseFreeFluxesHDF5(hdf5file,line,h5vars,h5data):
 		if fns == '.n':
 			netflx[fnp] = str(fv)
 		elif fns == '.x':
- 			xchflx[fnp] = str(fv)
+			xchflx[fnp] = str(fv)
 		else: 
 			psizes[V[i]]=str(fv)
 
@@ -112,7 +112,7 @@ def parseFreeFluxesFWDSIM(fwdfile):
 	netflx = {}
 	xchflx = {}
 	psizes = {}
-	fluxlist = stoichiometry.getiterator('{%s}flux' % fwdNS)
+	fluxlist = stoichiometry.iter('{%s}flux' % fwdNS)
 	for flux in fluxlist:
 		fname = flux.get('id')
 		for nx in flux:
@@ -123,7 +123,7 @@ def parseFreeFluxesFWDSIM(fwdfile):
 			elif nx.tag == ('{%s}xch' % fwdNS):
 				xchflx[fname] = nx.get('value')
 	
-	poollist = stoichiometry.getiterator('{%s}pool' % fwdNS)
+	poollist = stoichiometry.iter('{%s}pool' % fwdNS)
 	for pool in poollist:
 		pname = pool.get('id')
 		if pool.get('type') != 'free':
@@ -181,8 +181,8 @@ def patchFluxML(doc,cfgname,netflx,xchflx,psize,force):
 
 		if force:
 			
-                        # S.Azzouzi; Fehlerbehaftete Anweisung behoben (index-out-of-range)
-                        # und der variables-tag </variables> war immer noch in fml vorhanden
+			# S.Azzouzi; Fehlerbehaftete Anweisung behoben (index-out-of-range)
+			# und der variables-tag </variables> war immer noch in fml vorhanden
 			# parameters = cfg.getElementsByTagName('variables')[0]
 			simulation = cfg.getElementsByTagName('simulation')[0]
 			parameters = simulation.getElementsByTagName('variables')					
@@ -193,9 +193,9 @@ def patchFluxML(doc,cfgname,netflx,xchflx,psize,force):
 						nchild = child.nextSibling
 						param.removeChild(child)
 						child = nchild
-                                simulation.removeChild(parameters[0]);
+				simulation.removeChild(parameters[0]);
 
-                        parameters = simulation.appendChild(doc.createElement('variables'))
+			parameters = simulation.appendChild(doc.createElement('variables'))
 			fnames = list(netflx.keys())
 			fnames.sort()
 			for fname in fnames:
@@ -221,11 +221,11 @@ def patchFluxML(doc,cfgname,netflx,xchflx,psize,force):
 			pnames.sort()
 			for pname in pnames:
 				fval = doc.createElement('poolvalue')
-                                fval.setAttribute('pool',pname)
-                                # Pretty-printing für Arme
-                                parameters.appendChild(doc.createTextNode("\n        "))
-                                fval.appendChild(doc.createTextNode(psize[pname]))
-                                parameters.appendChild(fval)
+				fval.setAttribute('pool',pname)
+				# Pretty-printing für Arme
+				parameters.appendChild(doc.createTextNode("\n        "))
+				fval.appendChild(doc.createTextNode(psize[pname]))
+				parameters.appendChild(fval)
 
 			parameters.appendChild(doc.createTextNode("\n      "))
 			success = True
@@ -255,16 +255,16 @@ def patchFluxML(doc,cfgname,netflx,xchflx,psize,force):
 					fv.removeChild(node)
 				# neuen Inhalt anlegen
 				fv.appendChild(doc.createTextNode(fval))
-                        # S.Azzouzi: Poolgrößen.Erweiterung:
-                        pvlist = cfg.getElementsByTagName('poolvalue')
-                        for pv in pvlist:
+			# S.Azzouzi: Poolgrößen.Erweiterung:
+			pvlist = cfg.getElementsByTagName('poolvalue')
+			for pv in pvlist:
 				pname = pv.getAttribute('pool')
 				pval = None
 	
 				if not patchpsize:
 					continue
 				try:
-                                        pval = psize[pname]
+					pval = psize[pname]
 				except KeyError:
 					pool.error('POOL %s not found among free parameters' % pname)
 					found_all = False

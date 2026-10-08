@@ -14,7 +14,7 @@ numreactions = 0
 
 def scan_pools(fluxml):
 	global fluxml_ns, poolmap, numlevels
-	poollist = fluxml.getiterator('{%s}pool' % fluxml_ns)
+	poollist = fluxml.iter('{%s}pool' % fluxml_ns)
 	for pool in poollist:
 		# atoms hat default-Wert 1:
 		atoms = int(pool.attrib.get('atoms','1'))
@@ -24,7 +24,7 @@ def scan_pools(fluxml):
 
 def scan_reactions(fluxml):
 	global fluxml_ns, numreactions
-	reactionlist = fluxml.getiterator('{%s}reaction' % fluxml_ns)
+	reactionlist = fluxml.iter('{%s}reaction' % fluxml_ns)
 	for reaction in reactionlist:
 		numreactions = numreactions + 1
 

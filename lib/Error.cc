@@ -25,7 +25,9 @@ extern "C" {
 #include <sys/un.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
+#ifdef P_LINUX
 #include <sys/prctl.h>
+#endif
 #include <unistd.h>
 
 #ifdef  __GNUG__
@@ -203,7 +205,9 @@ void AssertionError::attachDebugger()
 		_exit(EXIT_FAILURE);
 	}
 	// explicitly allow the debugger to attach to the running process
+#ifdef P_LINUX
 	prctl(PR_SET_PTRACER, ch_pid, 0, 0, 0);
+#endif
 	// go to sleep until a signal awakes us (e.g. by "kill -ALRM").
 	// This prevents that the control leaves the faulty code.
 

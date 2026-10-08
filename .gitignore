@@ -26,6 +26,7 @@ config/configure.scan
 config/depcomp
 config/install-sh
 config/missing
+config/py-compile
 config/stamp-h1
 config/ltmain.sh
 config.status
