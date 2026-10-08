@@ -7,7 +7,8 @@ SUBDIRS = lib \
 	  data \
 	  support \
 	  mathml \
-	  fluxml
+	  fluxml \
+	  apps
 
 AM_CPPFLAGS = -I$(top_srcdir)/data \
               -I$(top_srcdir)/fluxml \
